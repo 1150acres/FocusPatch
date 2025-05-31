@@ -33,6 +33,12 @@ A mobile-first ADHD planner app built with Expo, React Native, NativeWind, and F
 
 3. Scan the QR code with the Expo Go app on your mobile device or use an emulator.
 
+4. Run the test suite:
+
+   ```bash
+   npm test
+   ```
+
 ## Project Structure
 
 ```
@@ -68,8 +74,3 @@ focuspatch/
 - Integrations with calendar apps
 - Advanced task categorization
 
-## Get started
-
-1. Install dependencies
-
-   ```

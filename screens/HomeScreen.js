@@ -12,24 +12,7 @@ import {
 import { format, addDays } from 'date-fns';
 import { Swipeable } from 'react-native-gesture-handler';
 import { DeviceContext } from '../App';
-
-// Mock data for tasks - moved to separate module later for better organization
-const mockTasks = [
-  { id: '1', title: 'Work meeting', time: '9.00', day: 0 },
-  { id: '2', title: 'Study group', time: '1.00', day: 1 },
-  { id: '3', title: 'Call with mentor', time: '12.00', day: 1 },
-  { id: '4', title: 'Side hustle task', time: '35.30', day: 2 },
-];
-
-// Mock data for upcoming tasks
-const mockUpcoming = [
-  { id: '1', title: 'Start a podcast', dueDate: 'Later today', isGoal: true },
-  { id: '2', title: 'Side hustle task', dueDate: 'Thu, Mar29' },
-  { id: '3', title: 'Submit paper', dueDate: 'Fri. Jun 6' },
-];
-
-// Goal-related keywords to detect long-term goals
-const goalKeywords = ['podcast', 'business', 'learn', 'create', 'start a', 'begin', 'build'];
+import { useData } from '../hooks/useData';
 
 // Memoized task card component
 const TaskCard = React.memo(({ task }) => {
@@ -95,6 +78,7 @@ const UpcomingItem = React.memo(({ item, onPress }) => (
 export default function HomeScreen({ navigation }) {
   const [taskInput, setTaskInput] = useState('');
   const { hasTouchscreen } = useContext(DeviceContext);
+  const { tasks, upcoming, addTask, isLikelyGoal } = useData();
 
   // Memoize the base date to prevent unnecessary re-renders
   const baseDate = useMemo(() => new Date(), []);
@@ -104,21 +88,25 @@ export default function HomeScreen({ navigation }) {
     if (!taskInput.trim()) return;
     
     // Check if input contains goal-related keywords
-    const mightBeGoal = goalKeywords.some(keyword => 
-      taskInput.toLowerCase().includes(keyword.toLowerCase())
-    );
+    const mightBeGoal = isLikelyGoal(taskInput);
     
     if (mightBeGoal) {
       // Navigate to Goals screen for goal-related tasks
       navigation.navigate('Goals');
     } else {
-      // For regular tasks, just show an alert (in a real app, we would add it to state)
-      Alert.alert('Task Added', `"${taskInput}" has been added to your tasks.`);
+      // Add the task to today's schedule
+      addTask({
+        title: taskInput,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        day: 0, // Add to today
+        category: 'general'
+      });
+      Alert.alert('Task Added', `"${taskInput}" has been added to today's tasks.`);
     }
     
     // Clear the input
     setTaskInput('');
-  }, [taskInput, navigation]);
+  }, [taskInput, navigation, addTask, isLikelyGoal]);
 
   // Navigate to Goals when swiped left
   const handleSwipeLeft = useCallback(() => {
@@ -161,15 +149,15 @@ export default function HomeScreen({ navigation }) {
       
         <ScrollView>
           <View style={styles.calendarContainer}>
-            <DayColumn dayOffset={0} tasks={mockTasks} baseDate={baseDate} />
-            <DayColumn dayOffset={1} tasks={mockTasks} baseDate={baseDate} />
-            <DayColumn dayOffset={2} tasks={mockTasks} baseDate={baseDate} />
+            <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} />
+            <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} />
+            <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} />
           </View>
           
           <View style={styles.upcomingContainer}>
             <Text style={styles.sectionTitle}>Upcoming</Text>
             
-            {mockUpcoming.map(item => (
+            {upcoming.map(item => (
               <UpcomingItem 
                 key={item.id}
                 item={item}

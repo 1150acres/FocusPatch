@@ -9,32 +9,7 @@ import {
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { DeviceContext } from '../App';
-
-// Mock data for goals
-const mockGoals = [
-  { 
-    id: '1', 
-    title: 'Start a podcast', 
-    completed: 3, 
-    total: 10,
-    icon: '🧠'
-  },
-  { 
-    id: '2', 
-    title: 'Finish reading', 
-    completed: 6, 
-    total: 8,
-    icon: '📖',
-    subtitle: '2 chapters left'
-  },
-  { 
-    id: '3', 
-    title: 'Get fit', 
-    completed: 0, 
-    total: 10,
-    icon: '💪'
-  },
-];
+import { useGoals } from '../hooks/useData';
 
 // Memoized goal card component
 const GoalCard = React.memo(({ goal }) => (
@@ -67,6 +42,7 @@ const GoalCard = React.memo(({ goal }) => (
 
 export default function GoalsScreen({ navigation }) {
   const { hasTouchscreen } = useContext(DeviceContext);
+  const { goals } = useGoals();
 
   // Navigate to Home when swiped right
   const handleSwipeRight = useCallback(() => {
@@ -106,7 +82,7 @@ export default function GoalsScreen({ navigation }) {
         </View>
       
         <ScrollView style={styles.content}>
-          {mockGoals.map(goal => (
+          {goals.map(goal => (
             <GoalCard key={goal.id} goal={goal} />
           ))}
           

@@ -24,14 +24,20 @@ A mobile-first ADHD planner app built with Expo, React Native, NativeWind, and F
    ```bash
    npm install
    ```
+2. Install Expo CLI as a dev dependency:
 
-2. Start the development server:
+   ```bash
+   npm install --save-dev expo-cli
+   ```
+
+3. Start the development server:
 
    ```bash
    npm start
    ```
+   This runs `npx expo start` using the local Expo CLI.
 
-3. Scan the QR code with the Expo Go app on your mobile device or use an emulator.
+4. Scan the QR code with the Expo Go app on your mobile device or use an emulator.
 
 ## Project Structure
 

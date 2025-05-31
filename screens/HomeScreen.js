@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { format, addDays } from 'date-fns';
+import { Swipeable } from 'react-native-gesture-handler';
+import { DeviceContext } from '../App';
 
 // Mock data for tasks
 const mockTasks = [
@@ -31,6 +33,7 @@ const goalKeywords = ['podcast', 'business', 'learn', 'create', 'start a', 'begi
 
 export default function HomeScreen({ navigation }) {
   const [taskInput, setTaskInput] = useState('');
+  const { hasTouchscreen } = useContext(DeviceContext);
 
   // Function to handle adding a new task
   const handleAddTask = () => {
@@ -51,6 +54,20 @@ export default function HomeScreen({ navigation }) {
     
     // Clear the input
     setTaskInput('');
+  };
+
+  // Navigate to Goals when swiped left
+  const handleSwipeLeft = () => {
+    navigation.navigate('Goals');
+  };
+
+  // Render swipe actions
+  const renderRightActions = () => {
+    return (
+      <View style={styles.swipeActions}>
+        <Text style={styles.swipeText}>Goals →</Text>
+      </View>
+    );
   };
 
   // Render day column with tasks
@@ -90,39 +107,52 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>FocusPatch</Text>
-      </View>
+      <Swipeable
+        renderRightActions={renderRightActions}
+        onSwipeableRightOpen={handleSwipeLeft}
+        friction={2}
+        rightThreshold={40}
+        enabled={hasTouchscreen}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>FocusPatch</Text>
+          {hasTouchscreen ? (
+            <Text style={styles.navigationHint}>Swipe left for Goals →</Text>
+          ) : (
+            <Text style={styles.navigationHint}>Press Right Arrow or 'G' key for Goals →</Text>
+          )}
+        </View>
       
-      <ScrollView>
-        <View style={styles.calendarContainer}>
-          {renderDayColumn(0)}
-          {renderDayColumn(1)}
-          {renderDayColumn(2)}
-        </View>
-        
-        <View style={styles.upcomingContainer}>
-          <Text style={styles.sectionTitle}>Upcoming</Text>
+        <ScrollView>
+          <View style={styles.calendarContainer}>
+            {renderDayColumn(0)}
+            {renderDayColumn(1)}
+            {renderDayColumn(2)}
+          </View>
           
-          {mockUpcoming.map(item => (
-            <TouchableOpacity 
-              key={item.id}
-              style={styles.upcomingTask}
-              onPress={() => item.isGoal && navigation.navigate('Goals')}
-            >
-              <View style={styles.upcomingIconContainer}>
-                <Text style={styles.upcomingIcon}>
-                  {item.isGoal ? '☰' : '👍'}
-                </Text>
-              </View>
-              <View style={styles.upcomingDetails}>
-                <Text style={styles.upcomingTitle}>{item.title}</Text>
-              </View>
-              <Text style={styles.upcomingDate}>{item.dueDate}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+          <View style={styles.upcomingContainer}>
+            <Text style={styles.sectionTitle}>Upcoming</Text>
+            
+            {mockUpcoming.map(item => (
+              <TouchableOpacity 
+                key={item.id}
+                style={styles.upcomingTask}
+                onPress={() => item.isGoal && navigation.navigate('Goals')}
+              >
+                <View style={styles.upcomingIconContainer}>
+                  <Text style={styles.upcomingIcon}>
+                    {item.isGoal ? '☰' : '👍'}
+                  </Text>
+                </View>
+                <View style={styles.upcomingDetails}>
+                  <Text style={styles.upcomingTitle}>{item.title}</Text>
+                </View>
+                <Text style={styles.upcomingDate}>{item.dueDate}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </Swipeable>
       
       <View style={styles.inputContainer}>
         <TextInput
@@ -157,6 +187,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
+  navigationHint: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 5,
+  },
   calendarContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -168,6 +203,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  swipeActions: {
+    backgroundColor: '#4a90e2',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingRight: 20,
+    width: 100,
+  },
+  swipeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   dayColumn: {
     flex: 1,
@@ -288,4 +335,4 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-}); 
+});

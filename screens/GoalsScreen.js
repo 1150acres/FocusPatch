@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import { DeviceContext } from '../App';
 
 // Mock data for goals
 const mockGoals = [
@@ -36,45 +38,74 @@ const mockGoals = [
 ];
 
 export default function GoalsScreen({ navigation }) {
+  const { hasTouchscreen } = useContext(DeviceContext);
+
+  // Navigate to Home when swiped right
+  const handleSwipeRight = () => {
+    navigation.navigate('Home');
+  };
+
+  // Render swipe actions
+  const renderLeftActions = () => {
+    return (
+      <View style={styles.swipeActions}>
+        <Text style={styles.swipeText}>← Home</Text>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Goals</Text>
-      </View>
+      <Swipeable
+        renderLeftActions={renderLeftActions}
+        onSwipeableLeftOpen={handleSwipeRight}
+        friction={2}
+        leftThreshold={40}
+        enabled={hasTouchscreen}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>My Goals</Text>
+          {hasTouchscreen ? (
+            <Text style={styles.navigationHint}>← Swipe right for Home</Text>
+          ) : (
+            <Text style={styles.navigationHint}>Press Left Arrow or 'H' key for Home</Text>
+          )}
+        </View>
       
-      <ScrollView style={styles.content}>
-        {mockGoals.map(goal => (
-          <View key={goal.id} style={styles.goalCard}>
-            <View style={styles.goalIconContainer}>
-              <Text style={styles.goalIcon}>{goal.icon}</Text>
-            </View>
-            
-            <View style={styles.goalDetails}>
-              <Text style={styles.goalTitle}>{goal.title}</Text>
-              {goal.subtitle ? (
-                <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
-              ) : (
-                <Text style={styles.goalProgress}>
-                  {goal.completed}/{goal.total} steps completed
-                </Text>
-              )}
+        <ScrollView style={styles.content}>
+          {mockGoals.map(goal => (
+            <View key={goal.id} style={styles.goalCard}>
+              <View style={styles.goalIconContainer}>
+                <Text style={styles.goalIcon}>{goal.icon}</Text>
+              </View>
               
-              <View style={styles.progressContainer}>
-                <View 
-                  style={[
-                    styles.progressBar, 
-                    {width: `${(goal.completed / goal.total) * 100}%`}
-                  ]} 
-                />
+              <View style={styles.goalDetails}>
+                <Text style={styles.goalTitle}>{goal.title}</Text>
+                {goal.subtitle ? (
+                  <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
+                ) : (
+                  <Text style={styles.goalProgress}>
+                    {goal.completed}/{goal.total} steps completed
+                  </Text>
+                )}
+                
+                <View style={styles.progressContainer}>
+                  <View 
+                    style={[
+                      styles.progressBar, 
+                      {width: `${(goal.completed / goal.total) * 100}%`}
+                    ]} 
+                  />
+                </View>
               </View>
             </View>
-          </View>
-        ))}
-        
-        <TouchableOpacity style={styles.addGoalButton}>
-          <Text style={styles.addGoalText}>Add new goal</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          ))}
+          
+          <TouchableOpacity style={styles.addGoalButton}>
+            <Text style={styles.addGoalText}>Add new goal</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </Swipeable>
       
       <TouchableOpacity 
         style={styles.backButton}
@@ -100,6 +131,23 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#333',
+  },
+  navigationHint: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 5,
+  },
+  swipeActions: {
+    backgroundColor: '#4a90e2',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingLeft: 20,
+    width: 100,
+  },
+  swipeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   content: {
     flex: 1,
@@ -187,4 +235,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4a90e2',
   },
-}); 
+});

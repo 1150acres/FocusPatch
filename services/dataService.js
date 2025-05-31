@@ -24,7 +24,15 @@ const initialGoals = [
     completed: 3, 
     total: 10,
     icon: '🧠',
-    category: 'creative'
+    category: 'creative',
+    steps: [
+      { id: '1-1', title: 'Research podcast hosting platforms', completed: true },
+      { id: '1-2', title: 'Create content strategy', completed: true },
+      { id: '1-3', title: 'Design podcast artwork', completed: true },
+      { id: '1-4', title: 'Record first episode', completed: false },
+      { id: '1-5', title: 'Set up social media accounts', completed: false },
+      { id: '1-6', title: 'Launch and promote', completed: false },
+    ]
   },
   { 
     id: '2', 
@@ -33,15 +41,31 @@ const initialGoals = [
     total: 8,
     icon: '📖',
     subtitle: '2 chapters left',
-    category: 'education'
+    category: 'education',
+    steps: [
+      { id: '2-1', title: 'Read Chapter 1', completed: true },
+      { id: '2-2', title: 'Read Chapter 2', completed: true },
+      { id: '2-3', title: 'Read Chapter 3', completed: true },
+      { id: '2-4', title: 'Read Chapter 4', completed: true },
+      { id: '2-5', title: 'Read Chapter 5', completed: true },
+      { id: '2-6', title: 'Read Chapter 6', completed: true },
+      { id: '2-7', title: 'Read Chapter 7', completed: false },
+      { id: '2-8', title: 'Read Chapter 8', completed: false },
+    ]
   },
   { 
     id: '3', 
     title: 'Get fit', 
     completed: 0, 
-    total: 10,
+    total: 4,
     icon: '💪',
-    category: 'health'
+    category: 'health',
+    steps: [
+      { id: '3-1', title: 'Join a gym', completed: false },
+      { id: '3-2', title: 'Create workout schedule', completed: false },
+      { id: '3-3', title: 'Work out 3x per week for a month', completed: false },
+      { id: '3-4', title: 'Track progress and adjust plan', completed: false },
+    ]
   },
 ];
 

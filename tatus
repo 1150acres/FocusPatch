@@ -1,0 +1,10 @@
+[33mfa094aa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mcodex/resolve-merge-conflict-in-package.json[m[33m, [m[1;31morigin/codex/resolve-merge-conflict-in-package.json[m[33m)[m ✨ Added Goal Step Management - Tap goals to expand/collapse step lists - Add new steps with modal interface - Toggle step completion with checkboxes - Auto-update progress bars based on completion - Enhanced UX with visual feedback - MVP feature: Goal breakdown system complete
+[33meeb8408[m 🚀 Major Performance Optimization & Code Refactoring - Added React.memo, useCallback, useMemo for performance - Fixed memory leaks and event cleanup - Created centralized dataService and custom hooks - Enhanced features with real task addition - Fixed package.json dependencies and imports - ~40% fewer re-renders, eliminated memory leaks
+[33m238b679[m Create dataService.js
+[33m6ce3e5d[m Update GoalsScreen.js
+[33m1497106[m Update App.js
+[33m767bafc[m Update HomeScreen.js
+[33m438769d[m Resolve merge conflict in package.json
+[33m31344e0[m Use npx expo and add expo-cli
+[33md0ef507[m MVP scaffold: Home (calendar & input), Goals (progress bars)
+[33m6dab925[m Initiating project

@@ -1,0 +1,9 @@
+# OneDrive ignore file - exclude these from sync
+node_modules/
+.expo/
+dist/
+build/
+.tmp/
+*.log
+.DS_Store
+Thumbs.db 

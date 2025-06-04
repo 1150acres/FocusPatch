@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "version": ">= 3.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true,
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "env": {
+        "EXPO_USE_HERMES": "0",
+        "HERMES_ENABLED": "false"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_USE_HERMES": "0",
+        "HERMES_ENABLED": "false"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_USE_HERMES": "0",
+        "HERMES_ENABLED": "false"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+} 

@@ -139,7 +139,15 @@ export default function HomeScreen({ navigation }) {
         enabled={hasTouchscreen}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>FocusPatch</Text>
+          <View style={styles.headerTop}>
+            <Text style={styles.title}>FocusPatch</Text>
+            <TouchableOpacity 
+              style={styles.settingsButton}
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <Text style={styles.settingsIcon}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
           {hasTouchscreen ? (
             <Text style={styles.navigationHint}>Swipe left for Goals →</Text>
           ) : (
@@ -197,10 +205,22 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     backgroundColor: '#fff',
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#333',
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  settingsIcon: {
+    fontSize: 24,
   },
   navigationHint: {
     fontSize: 12,

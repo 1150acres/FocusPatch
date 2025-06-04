@@ -102,7 +102,7 @@ export default function App() {
           <Stack.Navigator 
             screenOptions={{ 
               headerShown: false,
-              animation: 'slide_from_right'
+              animation: 'fade' // Simpler animation that doesn't rely on problematic assets
             }}
           >
             <Stack.Screen name="Home" component={HomeScreen} />

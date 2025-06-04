@@ -140,26 +140,37 @@ export function useData() {
 }
 
 export function useGoals() {
-  const [goals, setGoals] = useState(sampleGoals);
+  const [goals, setGoals] = useState(() => {
+    console.log('Initializing goals with sample data');
+    return sampleGoals;
+  });
 
   const addGoal = useCallback((newGoal) => {
+    console.log('Adding new goal:', newGoal);
     const goal = {
-      id: Date.now().toString(),
+      id: `goal-${Date.now()}`,
       completed: 0,
       total: 0,
       steps: [],
       icon: '🎯',
       ...newGoal
     };
-    setGoals(prev => [...prev, goal]);
+    setGoals(prev => {
+      console.log('Previous goals:', prev);
+      const updated = [...prev, goal];
+      console.log('Updated goals:', updated);
+      return updated;
+    });
     return goal;
   }, []);
 
   const removeGoal = useCallback((goalId) => {
+    console.log('Removing goal:', goalId);
     setGoals(prev => prev.filter(goal => goal.id !== goalId));
   }, []);
 
   const updateGoal = useCallback((goalId, updates) => {
+    console.log('Updating goal:', goalId, updates);
     setGoals(prev => prev.map(goal => 
       goal.id === goalId ? { ...goal, ...updates } : goal
     ));

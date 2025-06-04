@@ -1,4 +1,4 @@
-import React, { useContext, useCallback, useState } from 'react';
+import React, { useContext, useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,13 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
+  Alert,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { DeviceContext } from '../App';
 import { useGoals } from '../hooks/useData';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 // Memoized goal step component
 const GoalStep = React.memo(({ step, onToggle }) => (
@@ -77,74 +80,108 @@ const GoalCard = React.memo(({ goal, onPress, onToggleStep, onAddStep, isExpande
   </View>
 ));
 
-export default function GoalsScreen({ navigation }) {
+export default function GoalsScreen() {
+  const navigation = useNavigation();
   const { hasTouchscreen } = useContext(DeviceContext);
-  const { goals, updateGoal } = useGoals();
-  const [expandedGoal, setExpandedGoal] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const { goals, addGoal, removeGoal, updateGoal } = useGoals();
+  const [expandedGoals, setExpandedGoals] = useState({});
+  const [showModal, setShowModal] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [newStepTitle, setNewStepTitle] = useState('');
+  const [newGoalModalVisible, setNewGoalModalVisible] = useState(false);
+  const [newGoalTitle, setNewGoalTitle] = useState('');
+  const [newGoalSubtitle, setNewGoalSubtitle] = useState('');
+  const [newGoalIcon, setNewGoalIcon] = useState('🎯');
 
-  // Navigate to Home when swiped right
-  const handleSwipeRight = useCallback(() => {
+  // Debug logging
+  useEffect(() => {
+    console.log('Current goals:', goals);
+  }, [goals]);
+
+  const handleSwipe = useCallback(() => {
     navigation.navigate('Home');
   }, [navigation]);
 
-  // Navigate to Home
-  const navigateToHome = useCallback(() => {
-    navigation.navigate('Home');
-  }, [navigation]);
+  const toggleGoalExpansion = useCallback((goalId) => {
+    console.log('Toggling goal expansion:', goalId);
+    setExpandedGoals(prev => ({
+      ...prev,
+      [goalId]: !prev[goalId]
+    }));
+  }, []);
 
-  // Toggle goal expansion
-  const handleGoalPress = useCallback((goalId) => {
-    setExpandedGoal(expandedGoal === goalId ? null : goalId);
-  }, [expandedGoal]);
-
-  // Toggle step completion
-  const handleToggleStep = useCallback((goalId, stepId) => {
+  const handleStepToggle = useCallback((goalId, stepId) => {
+    console.log('Toggling step:', goalId, stepId);
     const goal = goals.find(g => g.id === goalId);
-    if (!goal || !goal.steps) return;
+    if (!goal) return;
 
-    const updatedSteps = goal.steps.map(step => 
+    const updatedSteps = goal.steps.map(step =>
       step.id === stepId ? { ...step, completed: !step.completed } : step
     );
-    
-    const completedSteps = updatedSteps.filter(step => step.completed).length;
-    
+
+    const completedCount = updatedSteps.filter(step => step.completed).length;
     updateGoal(goalId, {
       steps: updatedSteps,
-      completed: completedSteps
+      completed: completedCount,
+      total: updatedSteps.length
     });
   }, [goals, updateGoal]);
 
-  // Open add step modal
-  const handleAddStep = useCallback((goal) => {
-    setSelectedGoal(goal);
-    setNewStepTitle('');
-    setModalVisible(true);
-  }, []);
-
-  // Add new step to goal
-  const addStepToGoal = useCallback(() => {
+  const handleAddStep = useCallback(() => {
     if (!selectedGoal || !newStepTitle.trim()) return;
 
+    const goal = goals.find(g => g.id === selectedGoal);
+    if (!goal) return;
+
     const newStep = {
-      id: `${selectedGoal.id}-${Date.now()}`,
+      id: `step-${Date.now()}`,
       title: newStepTitle.trim(),
       completed: false
     };
 
-    const goal = goals.find(g => g.id === selectedGoal.id);
-    const updatedSteps = [...(goal.steps || []), newStep];
-    
-    updateGoal(selectedGoal.id, {
+    const updatedSteps = [...goal.steps, newStep];
+    updateGoal(selectedGoal, {
       steps: updatedSteps,
       total: updatedSteps.length
     });
 
     setNewStepTitle('');
-    setModalVisible(false);
+    setShowModal(false);
+    setSelectedGoal(null);
   }, [selectedGoal, newStepTitle, goals, updateGoal]);
+
+  // Add new goal
+  const handleAddGoal = useCallback(() => {
+    setNewGoalTitle('');
+    setNewGoalSubtitle('');
+    setNewGoalIcon('🎯');
+    setNewGoalModalVisible(true);
+  }, []);
+
+  // Create new goal
+  const createNewGoal = useCallback(() => {
+    if (!newGoalTitle.trim()) {
+      Alert.alert('Error', 'Please enter a goal title');
+      return;
+    }
+
+    const newGoal = {
+      id: `goal-${Date.now()}`,
+      title: newGoalTitle.trim(),
+      subtitle: newGoalSubtitle.trim(),
+      icon: newGoalIcon,
+      completed: 0,
+      total: 0,
+      steps: [],
+      createdAt: new Date().toISOString()
+    };
+
+    addGoal(newGoal);
+    setNewGoalModalVisible(false);
+    setNewGoalTitle('');
+    setNewGoalSubtitle('');
+    setNewGoalIcon('🎯');
+  }, [newGoalTitle, newGoalSubtitle, newGoalIcon, addGoal]);
 
   // Render swipe actions
   const renderLeftActions = useCallback(() => {
@@ -157,43 +194,44 @@ export default function GoalsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Swipeable
-        renderLeftActions={renderLeftActions}
-        onSwipeableLeftOpen={handleSwipeRight}
-        friction={2}
-        leftThreshold={40}
-        enabled={hasTouchscreen}
+      <View style={styles.header}>
+        <Text style={styles.title}>Goals</Text>
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={handleAddGoal}
+        >
+          <Ionicons name="add-circle" size={24} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>My Goals</Text>
-          {hasTouchscreen ? (
-            <Text style={styles.navigationHint}>← Swipe right for Home</Text>
-          ) : (
-            <Text style={styles.navigationHint}>Press Left Arrow or 'H' key for Home</Text>
-          )}
-        </View>
-      
-        <ScrollView style={styles.content}>
-          {goals.map(goal => (
+        {goals && goals.length > 0 ? (
+          goals.map(goal => (
             <GoalCard 
               key={goal.id} 
               goal={goal}
-              onPress={handleGoalPress}
-              onToggleStep={handleToggleStep}
-              onAddStep={handleAddStep}
-              isExpanded={expandedGoal === goal.id}
+              onPress={toggleGoalExpansion}
+              onToggleStep={handleStepToggle}
+              onAddStep={() => {
+                setSelectedGoal(goal.id);
+                setShowModal(true);
+              }}
+              isExpanded={expandedGoals[goal.id]}
             />
-          ))}
-          
-          <TouchableOpacity style={styles.addGoalButton}>
-            <Text style={styles.addGoalText}>Add new goal</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </Swipeable>
-      
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No goals yet. Add your first goal!</Text>
+          </View>
+        )}
+      </ScrollView>
+
       <TouchableOpacity 
         style={styles.backButton}
-        onPress={navigateToHome}
+        onPress={() => navigation.navigate('Home')}
       >
         <Text style={styles.backButtonText}>← Back to Home</Text>
       </TouchableOpacity>
@@ -202,40 +240,102 @@ export default function GoalsScreen({ navigation }) {
       <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        visible={showModal}
+        onRequestClose={() => setShowModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Add Step to "{selectedGoal?.title}"
-            </Text>
-            
+            <Text style={styles.modalTitle}>Add New Step</Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="Enter step description..."
+              placeholder="Enter step description"
               value={newStepTitle}
               onChangeText={setNewStepTitle}
               autoFocus
-              multiline
             />
-            
             <View style={styles.modalButtons}>
-              <TouchableOpacity
+              <TouchableOpacity 
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  setShowModal(false);
+                  setSelectedGoal(null);
+                  setNewStepTitle('');
+                }}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={addStepToGoal}
-                disabled={!newStepTitle.trim()}
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleAddStep}
               >
-                <Text style={[styles.saveButtonText, !newStepTitle.trim() && styles.disabledText]}>
-                  Add Step
-                </Text>
+                <Text style={styles.modalButtonText}>Add Step</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Goal Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={newGoalModalVisible}
+        onRequestClose={() => setNewGoalModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Create New Goal</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Goal title"
+              value={newGoalTitle}
+              onChangeText={setNewGoalTitle}
+              autoFocus
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Goal description (optional)"
+              value={newGoalSubtitle}
+              onChangeText={setNewGoalSubtitle}
+            />
+            <View style={styles.iconSelector}>
+              <TouchableOpacity 
+                style={[styles.iconButton, newGoalIcon === '🎯' && styles.selectedIcon]}
+                onPress={() => setNewGoalIcon('🎯')}
+              >
+                <Text style={styles.iconText}>🎯</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.iconButton, newGoalIcon === '📚' && styles.selectedIcon]}
+                onPress={() => setNewGoalIcon('📚')}
+              >
+                <Text style={styles.iconText}>📚</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.iconButton, newGoalIcon === '💪' && styles.selectedIcon]}
+                onPress={() => setNewGoalIcon('💪')}
+              >
+                <Text style={styles.iconText}>💪</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.iconButton, newGoalIcon === '🎨' && styles.selectedIcon]}
+                onPress={() => setNewGoalIcon('🎨')}
+              >
+                <Text style={styles.iconText}>🎨</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setNewGoalModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={createNewGoal}
+              >
+                <Text style={styles.modalButtonText}>Create Goal</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -251,34 +351,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 60,
     backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
   },
-  navigationHint: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 5,
-  },
-  swipeActions: {
-    backgroundColor: '#4a90e2',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    paddingLeft: 20,
-    width: 100,
-  },
-  swipeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+  addButton: {
+    padding: 8,
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 16,
   },
   goalCard: {
@@ -391,20 +484,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  addGoalButton: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-  },
-  addGoalText: {
-    color: '#888',
-    fontSize: 16,
-  },
   backButton: {
     backgroundColor: '#4a90e2',
     padding: 16,
@@ -415,25 +494,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     color: '#333',
   },
   modalInput: {
@@ -441,39 +518,79 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
+    marginBottom: 16,
     fontSize: 16,
-    marginBottom: 20,
-    minHeight: 80,
-    textAlignVertical: 'top',
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
+    gap: 12,
   },
   modalButton: {
-    flex: 1,
-    padding: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
+    minWidth: 80,
     alignItems: 'center',
-    marginHorizontal: 6,
   },
   cancelButton: {
     backgroundColor: '#f5f5f5',
   },
-  saveButton: {
+  confirmButton: {
     backgroundColor: '#4a90e2',
   },
-  cancelButtonText: {
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  iconSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  iconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedIcon: {
+    backgroundColor: '#4a90e2',
+  },
+  iconText: {
+    fontSize: 24,
+  },
+  emptyState: {
+    padding: 32,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  emptyStateText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 16,
     color: '#666',
-    fontSize: 16,
-    fontWeight: '600',
+    textAlign: 'center',
   },
-  saveButtonText: {
+  swipeActions: {
+    backgroundColor: '#4a90e2',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingLeft: 20,
+    width: 100,
+  },
+  swipeText: {
     color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  disabledText: {
-    opacity: 0.5,
   },
 }); 

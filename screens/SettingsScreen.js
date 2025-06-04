@@ -8,16 +8,30 @@ import {
   Switch,
   TouchableOpacity,
   Platform,
+  Share,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { DeviceContext } from '../App';
 
 export default function SettingsScreen({ navigation }) {
   const { hasTouchscreen } = useContext(DeviceContext);
   const [debugMode, setDebugMode] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const navigateToHome = useCallback(() => {
     navigation.navigate('Home');
   }, [navigation]);
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: 'Check out my FocusPatch instance!',
+        url: 'exp://192.168.1.56:8081',
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -44,11 +58,42 @@ export default function SettingsScreen({ navigation }) {
             </View>
             <Switch
               value={debugMode}
-              onValueChange={setDebugMode}
+              onValueChange={(value) => {
+                setDebugMode(value);
+                if (value) setShowQR(true);
+              }}
               trackColor={{ false: '#767577', true: '#81b0ff' }}
               thumbColor={debugMode ? '#4a90e2' : '#f4f3f4'}
             />
           </View>
+
+          {debugMode && (
+            <View style={styles.debugSection}>
+              <Text style={styles.debugTitle}>Debug Information</Text>
+              <View style={styles.debugCard}>
+                <Text style={styles.debugText}>Platform: {Platform.OS}</Text>
+                <Text style={styles.debugText}>Touchscreen: {hasTouchscreen ? 'Yes' : 'No'}</Text>
+                <Text style={styles.debugText}>Server: exp://192.168.1.56:8081</Text>
+              </View>
+
+              {showQR && (
+                <View style={styles.qrContainer}>
+                  <QRCode
+                    value="exp://192.168.1.56:8081"
+                    size={200}
+                    backgroundColor="white"
+                    color="black"
+                  />
+                  <TouchableOpacity 
+                    style={styles.shareButton}
+                    onPress={handleShare}
+                  >
+                    <Text style={styles.shareButtonText}>Share Instance</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
         
@@ -132,6 +177,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 2,
+  },
+  debugSection: {
+    marginTop: 16,
+  },
+  debugTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  debugCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  debugText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  qrContainer: {
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  shareButton: {
+    backgroundColor: '#4a90e2',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   backButton: {
     backgroundColor: '#4a90e2',

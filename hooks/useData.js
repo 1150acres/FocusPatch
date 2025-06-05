@@ -1,4 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// HELPER: persist the full goals array (including nested steps) into AsyncStorage
+async function saveGoalsToStorage(goalsArray) {
+  try {
+    // Always ensure we're writing an array; if not, fallback to sampleGoals
+    const toStore = Array.isArray(goalsArray) ? goalsArray : sampleGoals;
+    console.log('🔵 [saveGoalsToStorage] writing goals:', toStore);
+    await AsyncStorage.setItem('@goals', JSON.stringify(toStore));
+    console.log('✅ [saveGoalsToStorage] write complete');
+  } catch (err) {
+    console.error('❌ [saveGoalsToStorage] error:', err);
+  }
+}
 
 const sampleTasks = [
   {
@@ -101,26 +115,84 @@ const sampleGoals = [
 ];
 
 export function useData() {
-  const [tasks, setTasks] = useState(sampleTasks);
+  const [tasks, setTasks] = useState([]);
   const [upcoming, setUpcoming] = useState(sampleUpcoming);
 
-  const addTask = useCallback((newTask) => {
-    const task = {
-      id: Date.now().toString(),
-      ...newTask
-    };
-    setTasks(prev => [...prev, task]);
+  async function loadTasksFromStorage() {
+    try {
+      const raw = await AsyncStorage.getItem('@tasks');
+      if (!raw) {
+        return sampleTasks;
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : sampleTasks;
+    } catch (err) {
+      console.error('❌ [loadTasksFromStorage] error parsing:', err);
+      return sampleTasks;
+    }
+  }
+
+  async function saveTasksToStorage(tasksArray) {
+    try {
+      const toStore = Array.isArray(tasksArray) ? tasksArray : sampleTasks;
+      console.log('🔵 [saveTasks] writing:', toStore);
+      await AsyncStorage.setItem('@tasks', JSON.stringify(toStore));
+      console.log('✅ [saveTasks] write complete');
+    } catch (err) {
+      console.error('❌ [saveTasks] error:', err);
+    }
+  }
+
+  useEffect(() => {
+    (async () => {
+      console.log('🔵 [loadTasks] reading from AsyncStorage');
+      const stored = await loadTasksFromStorage();
+      console.log('✅ [loadTasks] got:', stored);
+      setTasks(stored);
+    })();
+  }, []);
+
+  const addTask = useCallback(async (newTask) => {
+    const task = { id: Date.now().toString(), ...newTask };
+    let updated = [];
+    await setTasks(prev => {
+      updated = [...prev, task];
+      return updated;
+    });
+    try {
+      await saveTasksToStorage(updated);
+    } catch (err) {
+      console.error('❌ [addTask] saveTasks error:', err);
+    }
     return task;
   }, []);
 
-  const removeTask = useCallback((taskId) => {
-    setTasks(prev => prev.filter(task => task.id !== taskId));
+  const removeTask = useCallback(async (id) => {
+    let updated = [];
+    await setTasks(prev => {
+      updated = prev.filter(task => task.id !== id);
+      return updated;
+    });
+    try {
+      await saveTasksToStorage(updated);
+    } catch (err) {
+      console.error('❌ [removeTask] saveTasks error:', err);
+    }
   }, []);
 
-  const updateTask = useCallback((taskId, updates) => {
-    setTasks(prev => prev.map(task => 
-      task.id === taskId ? { ...task, ...updates } : task
-    ));
+  const updateTask = useCallback(async (id, updates) => {
+    let updated = [];
+    await setTasks(prev => {
+      updated = prev.map(task =>
+        task.id === id ? { ...task, ...updates } : task
+      );
+      return updated;
+    });
+    try {
+      await saveTasksToStorage(updated);
+    } catch (err) {
+      console.error('❌ [updateTask] saveTasks error:', err);
+    }
   }, []);
 
   const isLikelyGoal = useCallback((text) => {
@@ -140,10 +212,30 @@ export function useData() {
 }
 
 export function useGoals() {
-  const [goals, setGoals] = useState(() => {
-    console.log('Initializing goals with sample data');
-    return sampleGoals;
-  });
+  const [goals, setGoals] = useState([]);
+
+  async function loadGoalsFromStorage() {
+    try {
+      const raw = await AsyncStorage.getItem('@goals');
+      if (!raw) {
+        return sampleGoals;
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : sampleGoals;
+    } catch (err) {
+      console.error('❌ [loadGoalsFromStorage] parse error:', err);
+      return sampleGoals;
+    }
+  }
+
+  useEffect(() => {
+    (async () => {
+      console.log('🔵 [loadGoals] reading from AsyncStorage');
+      const stored = await loadGoalsFromStorage();
+      console.log('✅ [loadGoals] got:', stored);
+      setGoals(stored);
+    })();
+  }, []);
 
   const addGoal = useCallback((newGoal) => {
     console.log('Adding new goal:', newGoal);
@@ -169,12 +261,26 @@ export function useGoals() {
     setGoals(prev => prev.filter(goal => goal.id !== goalId));
   }, []);
 
-  const updateGoal = useCallback((goalId, updates) => {
-    console.log('Updating goal:', goalId, updates);
-    setGoals(prev => prev.map(goal => 
-      goal.id === goalId ? { ...goal, ...updates } : goal
-    ));
-  }, []);
+  const updateGoal = useCallback(async (goalId, updates) => {
+    console.log('Updating goal (persisting):', goalId, updates);
+
+    // 1. Build the new array of goals by merging updates into the target goal:
+    let updatedGoals = [];
+    await setGoals(prevGoals => {
+      updatedGoals = prevGoals.map(goal =>
+        goal.id === goalId ? { ...goal, ...updates } : goal
+      );
+      return updatedGoals;
+    });
+
+    // 2. Now persist the entire updatedGoals array (including nested steps) to AsyncStorage:
+    try {
+      await saveGoalsToStorage(updatedGoals);
+      console.log('✅ [updateGoal] save complete for goal:', goalId);
+    } catch (err) {
+      console.error('❌ [updateGoal] saveGoalsToStorage error:', err);
+    }
+  }, [setGoals]);
 
   return {
     goals,

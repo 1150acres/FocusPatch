@@ -9,12 +9,14 @@ import {
   TextInput,
   Modal,
   Alert,
+  Pressable,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { DeviceContext } from '../App';
 import { useGoals } from '../hooks/useData';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 // Memoized goal step component
 const GoalStep = React.memo(({ step, onToggle }) => (

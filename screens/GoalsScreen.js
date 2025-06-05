@@ -31,9 +31,13 @@ const GoalStep = React.memo(({ step, onToggle }) => (
 ));
 
 // Memoized goal card component
-const GoalCard = React.memo(({ goal, onPress, onToggleStep, onAddStep, isExpanded }) => (
-  <View style={styles.goalCard}>
-    <TouchableOpacity style={styles.goalHeader} onPress={() => onPress(goal.id)}>
+const GoalCard = React.memo(({ goal, onPress, onLongPress, onToggleStep, onAddStep, isExpanded }) => (
+  <View key={goal.id} style={styles.goalCard}>
+    <TouchableOpacity 
+      style={styles.goalHeader} 
+      onPress={() => onPress(goal.id)} 
+      onLongPress={onLongPress}
+    >
       <View style={styles.goalIconContainer}>
         <Text style={styles.goalIcon}>{goal.icon}</Text>
       </View>
@@ -86,6 +90,8 @@ export default function GoalsScreen() {
   const navigation = useNavigation();
   const { hasTouchscreen } = useContext(DeviceContext);
   const { goals, addGoal, removeGoal, updateGoal } = useGoals();
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [expandedGoals, setExpandedGoals] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
@@ -213,9 +219,14 @@ export default function GoalsScreen() {
         {goals && goals.length > 0 ? (
           goals.map(goal => (
             <GoalCard 
-              key={goal.id} 
+              key={goal.id}
               goal={goal}
               onPress={toggleGoalExpansion}
+              onLongPress={() => {
+                Haptics.selectionAsync();
+                setSelectedGoalId(goal.id);
+                setContextMenuVisible(true);
+              }}
               onToggleStep={handleStepToggle}
               onAddStep={() => {
                 setSelectedGoal(goal.id);
@@ -230,6 +241,63 @@ export default function GoalsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* CONTEXT‐MENU MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={contextMenuVisible}
+        onRequestClose={() => setContextMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+          activeOpacity={1}
+          onPressOut={() => setContextMenuVisible(false)}
+        >
+          <View
+            style={{
+              width: 260,
+              backgroundColor: '#fff',
+              borderRadius: 8,
+              paddingVertical: 16,
+              alignItems: 'stretch'
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                paddingVertical: 12,
+                alignItems: 'center',
+                borderBottomWidth: 1,
+                borderColor: '#eee'
+              }}
+              onPress={async () => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                if (selectedGoalId) {
+                  await removeGoal(selectedGoalId);
+                }
+                setContextMenuVisible(false);
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'red' }}>
+                Delete Goal
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ paddingVertical: 12, alignItems: 'center' }}
+              onPress={() => setContextMenuVisible(false)}
+            >
+              <Text style={{ fontSize: 16, fontWeight: 'bold' }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <TouchableOpacity 
         style={styles.backButton}

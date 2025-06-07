@@ -23,44 +23,44 @@ const GoalStep = React.memo(({ step, onToggle }) => (
   <TouchableOpacity style={styles.stepItem} onPress={() => onToggle(step.id)}>
     <View style={[styles.checkbox, step.completed && styles.checkboxCompleted]}>
       {step.completed && <Text style={styles.checkmark}>✓</Text>}
-    </View>
+      </View>
     <Text style={[styles.stepText, step.completed && styles.stepTextCompleted]}>
       {step.title}
     </Text>
   </TouchableOpacity>
 ));
-
+      
 // Memoized goal card component
 const GoalCard = React.memo(({ goal, onPress, onLongPress, onToggleStep, onAddStep, isExpanded }) => (
-  <View key={goal.id} style={styles.goalCard}>
+          <View key={goal.id} style={styles.goalCard}>
     <TouchableOpacity 
       style={styles.goalHeader} 
       onPress={() => onPress(goal.id)} 
       onLongPress={onLongPress}
     >
-      <View style={styles.goalIconContainer}>
-        <Text style={styles.goalIcon}>{goal.icon}</Text>
-      </View>
-      
-      <View style={styles.goalDetails}>
-        <Text style={styles.goalTitle}>{goal.title}</Text>
-        {goal.subtitle ? (
-          <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
-        ) : (
-          <Text style={styles.goalProgress}>
-            {goal.completed}/{goal.total} steps completed
-          </Text>
-        )}
-        
-        <View style={styles.progressContainer}>
-          <View 
-            style={[
-              styles.progressBar, 
-              {width: `${(goal.completed / goal.total) * 100}%`}
-            ]} 
-          />
-        </View>
-      </View>
+            <View style={styles.goalIconContainer}>
+              <Text style={styles.goalIcon}>{goal.icon}</Text>
+            </View>
+            
+            <View style={styles.goalDetails}>
+              <Text style={styles.goalTitle}>{goal.title}</Text>
+              {goal.subtitle ? (
+                <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
+              ) : (
+                <Text style={styles.goalProgress}>
+                  {goal.completed}/{goal.total} steps completed
+                </Text>
+              )}
+              
+              <View style={styles.progressContainer}>
+                <View 
+                  style={[
+                    styles.progressBar, 
+                    {width: `${(goal.completed / goal.total) * 100}%`}
+                  ]} 
+                />
+              </View>
+            </View>
       
       <Text style={styles.expandIcon}>{isExpanded ? '⌄' : '⌃'}</Text>
     </TouchableOpacity>
@@ -298,7 +298,7 @@ export default function GoalsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-
+      
       <TouchableOpacity 
         style={styles.backButton}
         onPress={() => navigation.navigate('Home')}

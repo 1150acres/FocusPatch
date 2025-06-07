@@ -17,7 +17,7 @@ import { DeviceContext } from '../App';
 import { useData } from '../hooks/useData';
 
 // Memoized task card component
-const TaskCard = React.memo(({ task }) => {
+const TaskCard = React.memo(({ task, onToggleComplete }) => {
   const taskStyle = useMemo(() => {
     if (task.title.includes('Work')) return styles.blueTask;
     if (task.title.includes('Study')) return styles.cyanTask;
@@ -26,15 +26,25 @@ const TaskCard = React.memo(({ task }) => {
   }, [task.title]);
 
   return (
-    <View style={[styles.taskCard, taskStyle]}>
-      <Text style={styles.taskTitle}>{task.title}</Text>
-      <Text style={styles.taskTime}>{task.time}</Text>
-    </View>
+    <TouchableOpacity 
+      style={[styles.taskCard, taskStyle, task.completed && styles.completedTask]}
+      onPress={() => onToggleComplete && onToggleComplete(task.id)}
+    >
+      <View style={styles.taskContent}>
+        <View style={[styles.checkbox, task.completed && styles.checkboxCompleted]}>
+          {task.completed && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+        <View style={styles.taskInfo}>
+          <Text style={[styles.taskTitle, task.completed && styles.completedText]}>{task.title}</Text>
+          <Text style={[styles.taskTime, task.completed && styles.completedText]}>{task.time}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 });
 
 // Memoized day column component
-const DayColumn = React.memo(({ dayOffset, tasks, baseDate }) => {
+const DayColumn = React.memo(({ dayOffset, tasks, baseDate, onToggleComplete }) => {
   const { date, dayName, dayText, dayTasks } = useMemo(() => {
     const date = addDays(baseDate, dayOffset);
     // Fixed typos in day names
@@ -53,7 +63,7 @@ const DayColumn = React.memo(({ dayOffset, tasks, baseDate }) => {
       </View>
       
       {dayTasks.map(task => (
-        <TaskCard key={task.id} task={task} />
+        <TaskCard key={task.id} task={task} onToggleComplete={onToggleComplete} />
       ))}
     </View>
   );
@@ -80,7 +90,7 @@ const UpcomingItem = React.memo(({ item, onPress }) => (
 export default function HomeScreen({ navigation }) {
   const [taskInput, setTaskInput] = useState('');
   const { hasTouchscreen } = useContext(DeviceContext);
-  const { tasks, upcoming, addTask, isLikelyGoal } = useData();
+  const { tasks, upcoming, addTask, isLikelyGoal, updateTask } = useData();
 
   // Memoize the base date to prevent unnecessary re-renders
   const baseDate = useMemo(() => new Date(), []);
@@ -109,6 +119,14 @@ export default function HomeScreen({ navigation }) {
     // Clear the input
     setTaskInput('');
   }, [taskInput, navigation, addTask, isLikelyGoal]);
+
+  // Memoized function to handle task completion toggle
+  const handleToggleTaskComplete = useCallback(async (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      await updateTask(taskId, { completed: !task.completed });
+    }
+  }, [tasks, updateTask]);
 
   // Navigate to Goals when swiped left
   const handleSwipeLeft = useCallback(() => {
@@ -163,10 +181,31 @@ export default function HomeScreen({ navigation }) {
             </View>
           
             <ScrollView>
+              {/* Statistics Section */}
+              <View style={styles.statsContainer}>
+                <Text style={styles.sectionTitle}>Today's Progress</Text>
+                <View style={styles.statsRow}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>
+                      {tasks.filter(t => t.day === 0 && t.completed).length}/{tasks.filter(t => t.day === 0).length}
+                    </Text>
+                    <Text style={styles.statLabel}>Completed</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>{upcoming.filter(u => u.dueDate === 'Today').length}</Text>
+                    <Text style={styles.statLabel}>Due Today</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>{upcoming.filter(u => u.isGoal).length}</Text>
+                    <Text style={styles.statLabel}>Active Goals</Text>
+                  </View>
+                </View>
+              </View>
+
               <View style={styles.calendarContainer}>
-                <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} />
-                <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} />
-                <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} />
+                <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} onToggleComplete={handleToggleTaskComplete} />
+                <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} onToggleComplete={handleToggleTaskComplete} />
+                <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} onToggleComplete={handleToggleTaskComplete} />
               </View>
               
               <View style={styles.upcomingContainer}>
@@ -198,10 +237,31 @@ export default function HomeScreen({ navigation }) {
             </View>
           
             <ScrollView>
+              {/* Statistics Section */}
+              <View style={styles.statsContainer}>
+                <Text style={styles.sectionTitle}>Today's Progress</Text>
+                <View style={styles.statsRow}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>
+                      {tasks.filter(t => t.day === 0 && t.completed).length}/{tasks.filter(t => t.day === 0).length}
+                    </Text>
+                    <Text style={styles.statLabel}>Completed</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>{upcoming.filter(u => u.dueDate === 'Today').length}</Text>
+                    <Text style={styles.statLabel}>Due Today</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>{upcoming.filter(u => u.isGoal).length}</Text>
+                    <Text style={styles.statLabel}>Active Goals</Text>
+                  </View>
+                </View>
+              </View>
+
               <View style={styles.calendarContainer}>
-                <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} />
-                <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} />
-                <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} />
+                <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} onToggleComplete={handleToggleTaskComplete} />
+                <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} onToggleComplete={handleToggleTaskComplete} />
+                <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} onToggleComplete={handleToggleTaskComplete} />
               </View>
               
               <View style={styles.upcomingContainer}>
@@ -331,6 +391,31 @@ const styles = StyleSheet.create({
   yellowTask: {
     backgroundColor: '#f1c40f',
   },
+  taskContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  checkboxCompleted: {
+    backgroundColor: '#5cb85c',
+    borderColor: '#5cb85c',
+  },
+  checkmark: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  taskInfo: {
+    flex: 1,
+  },
   taskTitle: {
     color: '#fff',
     fontWeight: 'bold',
@@ -338,6 +423,12 @@ const styles = StyleSheet.create({
   },
   taskTime: {
     color: '#fff',
+  },
+  completedTask: {
+    backgroundColor: '#f0f0f0',
+  },
+  completedText: {
+    color: '#888',
   },
   upcomingContainer: {
     backgroundColor: '#fff',
@@ -420,5 +511,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  statsContainer: {
+    backgroundColor: '#fff',
+    margin: 16,
+    marginTop: 0,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statCard: {
+    flex: 1,
+    padding: 12,
+    marginHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#888',
   },
 }); 

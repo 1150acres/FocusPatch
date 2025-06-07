@@ -354,12 +354,20 @@ const styles = StyleSheet.create({
   daysContainer: {
     flex: 1,
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: Platform.select({
+      ios: 15,
+      android: 15,
+      web: 20,
+    }), // Reduced padding on mobile for more space
     paddingTop: 15,
   },
   dayColumn: {
     flex: 1,
-    marginHorizontal: 5,
+    marginHorizontal: Platform.select({
+      ios: 3,
+      android: 3,
+      web: 5,
+    }), // Reduced margins on mobile for more space
     backgroundColor: 'white',
     borderRadius: 12,
     ...Platform.select({
@@ -378,24 +386,40 @@ const styles = StyleSheet.create({
     }),
   },
   dayHeader: {
-    padding: 15,
+    padding: Platform.select({
+      ios: 12,
+      android: 12,
+      web: 15,
+    }), // Reduced padding on mobile
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     alignItems: 'center',
   },
   dayName: {
-    fontSize: 16,
+    fontSize: Platform.select({
+      ios: 14,
+      android: 14,
+      web: 16,
+    }), // Slightly smaller on mobile to save space
     fontWeight: 'bold',
     color: '#333',
   },
   dayDate: {
-    fontSize: 12,
+    fontSize: Platform.select({
+      ios: 11,
+      android: 11,
+      web: 12,
+    }),
     color: '#666',
     marginTop: 2,
   },
   tasksContainer: {
     flex: 1,
-    padding: 10,
+    padding: Platform.select({
+      ios: 8,
+      android: 8,
+      web: 10,
+    }), // Reduced padding on mobile for more content space
   },
   taskCard: {
     flexDirection: 'row',
@@ -403,6 +427,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
     alignItems: 'center',
+    minHeight: 60, // Ensure minimum height for mobile
   },
   taskCardCompleted: {
     opacity: 0.6,
@@ -410,18 +435,20 @@ const styles = StyleSheet.create({
   taskContent: {
     flex: 1,
     padding: 12,
+    minHeight: 50, // Ensure content area is tall enough
   },
   taskHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start', // Changed from 'center' to 'flex-start' for better text alignment
   },
   checkboxContainer: {
-    marginRight: 10,
+    marginRight: 12, // Increased margin for better spacing
+    paddingTop: 2, // Add slight padding to align with text
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22, // Slightly larger for mobile
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: '#007AFF',
     justifyContent: 'center',
@@ -432,36 +459,48 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 14, // Larger checkmark
     fontWeight: 'bold',
   },
   taskInfo: {
     flex: 1,
+    minWidth: 0, // Prevent text overflow issues
   },
   taskTitle: {
-    fontSize: 14,
+    fontSize: Platform.select({
+      ios: 16,
+      android: 16,
+      web: 14,
+    }), // Larger font size for mobile
     fontWeight: '600',
     color: '#333',
+    lineHeight: 20, // Better line height for readability
+    flexWrap: 'wrap', // Allow text to wrap
   },
   taskTitleCompleted: {
     textDecorationLine: 'line-through',
     color: '#999',
   },
   taskTime: {
-    fontSize: 12,
+    fontSize: Platform.select({
+      ios: 14,
+      android: 14,
+      web: 12,
+    }), // Larger font size for mobile
     color: '#666',
-    marginTop: 2,
+    marginTop: 4, // Increased margin
+    lineHeight: 16,
   },
   deleteButton: {
-    width: 30,
-    height: 30,
+    width: 36, // Larger touch target for mobile
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
   deleteButtonText: {
     color: '#ff4444',
-    fontSize: 20,
+    fontSize: 24, // Larger for mobile
     fontWeight: 'bold',
   },
 }); 

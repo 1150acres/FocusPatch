@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { DeviceContext } from '../App';
+import { DeviceContext } from '../contexts/DeviceContext';
 import { useGoals } from '../hooks/useData';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';

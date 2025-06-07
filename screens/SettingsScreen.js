@@ -11,7 +11,7 @@ import {
   Share,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { DeviceContext } from '../App';
+import { DeviceContext } from '../contexts/DeviceContext';
 
 export default function SettingsScreen({ navigation }) {
   const { hasTouchscreen } = useContext(DeviceContext);

@@ -210,9 +210,13 @@ export function useData() {
 
   const updateTask = useCallback(async (id, updates) => {
     let updated = [];
-    await setTasks(prev => {
-      updated = prev.map(task =>
-        task.id === id ? { ...task, ...updates } : task
+    setTasks(prev => {
+      const task = prev.find(t => t.id === id);
+      if (!task) return prev;
+      
+      const newUpdates = typeof updates === 'function' ? updates(task) : updates;
+      updated = prev.map(t =>
+        t.id === id ? { ...t, ...newUpdates } : t
       );
       return updated;
     });

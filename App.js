@@ -1,19 +1,14 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
-import HomeScreen from './screens/HomeScreen';
+import { DeviceContext } from './contexts/DeviceContext';
+import HomeScreen from './screens/HomeScreen-test';
 import GoalsScreen from './screens/GoalsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
-
-// Create a context to share touchscreen capability across components
-export const DeviceContext = createContext({
-  hasTouchscreen: false,
-  isKeyboardListenerActive: false,
-});
 
 export default function App() {
   const [hasTouchscreen, setHasTouchscreen] = useState(false);

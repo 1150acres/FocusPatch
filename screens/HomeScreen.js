@@ -344,6 +344,10 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   inputContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     padding: 16,
     backgroundColor: '#fff',

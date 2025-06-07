@@ -59,12 +59,8 @@ export default function HomeScreen({ navigation }) {
     );
   });
 
-  // Task card component with completion toggle
+  // Simplified task card component without checkboxes
   const TaskCard = React.memo(({ task, onToggleComplete }) => {
-    const handleToggleComplete = useCallback(() => {
-      onToggleComplete(task.id);
-    }, [task.id, onToggleComplete]);
-
     const handleDelete = useCallback(() => {
       if (Platform.OS === 'web') {
         if (window.confirm(`Delete "${task.title}"?`)) {
@@ -85,27 +81,14 @@ export default function HomeScreen({ navigation }) {
 
     return (
       <View style={[styles.taskCard, task.completed && styles.taskCardCompleted]}>
-        <TouchableOpacity 
-          style={styles.taskContent}
-          onPress={handleToggleComplete}
-          activeOpacity={0.7}
-        >
-          <View style={styles.taskHeader}>
-            <View style={styles.checkboxContainer}>
-              <View style={[styles.checkbox, task.completed && styles.checkboxChecked]}>
-                {task.completed && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-            </View>
-            <View style={styles.taskInfo}>
-              <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>
-                {task.title}
-              </Text>
-              <Text style={styles.taskTime}>{task.time}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.taskContent}>
+          <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>
+            {task.title}
+          </Text>
+          <Text style={styles.taskTime}>{task.time}</Text>
+        </View>
         
-        {/* Simple delete button instead of swipe gesture */}
+        {/* Delete button */}
         <TouchableOpacity 
           style={styles.deleteButton}
           onPress={handleDelete}
@@ -425,71 +408,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#f8f8f8',
     borderRadius: 8,
-    marginBottom: 8,
-    alignItems: 'center',
-    minHeight: 60, // Ensure minimum height for mobile
+    marginBottom: 10, // Increased spacing between cards
+    alignItems: 'stretch', // Changed to stretch for better layout
+    minHeight: 70, // Increased minimum height for better text visibility
   },
   taskCardCompleted: {
     opacity: 0.6,
   },
   taskContent: {
     flex: 1,
-    padding: 12,
-    minHeight: 50,
+    padding: 15, // Increased padding for better spacing
+    justifyContent: 'center', // Center content vertically
     backgroundColor: Platform.select({
       ios: 'rgba(255,255,0,0.3)', // Debug: yellow background on mobile
       android: 'rgba(255,255,0,0.3)',
       web: 'transparent',
     }),
   },
-  taskHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start', // Changed from 'center' to 'flex-start' for better text alignment
-  },
-  checkboxContainer: {
-    marginRight: 12, // Increased margin for better spacing
-    paddingTop: 2, // Add slight padding to align with text
-  },
-  checkbox: {
-    width: 22, // Slightly larger for mobile
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#007AFF',
-  },
-  checkmark: {
-    color: 'white',
-    fontSize: 14, // Larger checkmark
-    fontWeight: 'bold',
-  },
-  taskInfo: {
-    flex: 1,
-    minWidth: 0, // Prevent text overflow issues
-    backgroundColor: Platform.select({
-      ios: 'rgba(255,0,0,0.1)', // Debug: light red background on mobile
-      android: 'rgba(255,0,0,0.1)',
-      web: 'transparent',
-    }),
-  },
   taskTitle: {
     fontSize: Platform.select({
-      ios: 18, // Even larger for debugging
-      android: 18,
+      ios: 20, // Even larger for better visibility
+      android: 20,
       web: 14,
     }),
-    fontWeight: '700', // Bolder text
+    fontWeight: '800', // Extra bold text
     color: Platform.select({
       ios: '#000', // Pure black for maximum contrast
       android: '#000',
       web: '#333',
     }),
-    lineHeight: 22,
-    flexWrap: 'wrap',
+    lineHeight: 24,
+    marginBottom: 4, // Add space between title and time
     backgroundColor: Platform.select({
       ios: 'rgba(0,255,0,0.2)', // Debug: light green background
       android: 'rgba(0,255,0,0.2)',

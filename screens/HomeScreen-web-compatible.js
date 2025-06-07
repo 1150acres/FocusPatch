@@ -435,7 +435,12 @@ const styles = StyleSheet.create({
   taskContent: {
     flex: 1,
     padding: 12,
-    minHeight: 50, // Ensure content area is tall enough
+    minHeight: 50,
+    backgroundColor: Platform.select({
+      ios: 'rgba(255,255,0,0.3)', // Debug: yellow background on mobile
+      android: 'rgba(255,255,0,0.3)',
+      web: 'transparent',
+    }),
   },
   taskHeader: {
     flexDirection: 'row',
@@ -465,17 +470,31 @@ const styles = StyleSheet.create({
   taskInfo: {
     flex: 1,
     minWidth: 0, // Prevent text overflow issues
+    backgroundColor: Platform.select({
+      ios: 'rgba(255,0,0,0.1)', // Debug: light red background on mobile
+      android: 'rgba(255,0,0,0.1)',
+      web: 'transparent',
+    }),
   },
   taskTitle: {
     fontSize: Platform.select({
-      ios: 16,
-      android: 16,
+      ios: 18, // Even larger for debugging
+      android: 18,
       web: 14,
-    }), // Larger font size for mobile
-    fontWeight: '600',
-    color: '#333',
-    lineHeight: 20, // Better line height for readability
-    flexWrap: 'wrap', // Allow text to wrap
+    }),
+    fontWeight: '700', // Bolder text
+    color: Platform.select({
+      ios: '#000', // Pure black for maximum contrast
+      android: '#000',
+      web: '#333',
+    }),
+    lineHeight: 22,
+    flexWrap: 'wrap',
+    backgroundColor: Platform.select({
+      ios: 'rgba(0,255,0,0.2)', // Debug: light green background
+      android: 'rgba(0,255,0,0.2)',
+      web: 'transparent',
+    }),
   },
   taskTitleCompleted: {
     textDecorationLine: 'line-through',
@@ -483,13 +502,22 @@ const styles = StyleSheet.create({
   },
   taskTime: {
     fontSize: Platform.select({
-      ios: 14,
-      android: 14,
+      ios: 16, // Even larger for debugging
+      android: 16,
       web: 12,
-    }), // Larger font size for mobile
-    color: '#666',
-    marginTop: 4, // Increased margin
-    lineHeight: 16,
+    }),
+    color: Platform.select({
+      ios: '#000', // Pure black for debugging
+      android: '#000',
+      web: '#666',
+    }),
+    marginTop: 4,
+    lineHeight: 18,
+    backgroundColor: Platform.select({
+      ios: 'rgba(0,0,255,0.2)', // Debug: light blue background
+      android: 'rgba(0,0,255,0.2)',
+      web: 'transparent',
+    }),
   },
   deleteButton: {
     width: 36, // Larger touch target for mobile

@@ -208,6 +208,21 @@ export function useData() {
     }
   }, []);
 
+  const deleteTasks = useCallback(async (taskIds) => {
+    console.log('🔵 [deleteTasks] deleting tasks:', taskIds);
+    let updated = [];
+    await setTasks(prev => {
+      updated = prev.filter(task => !taskIds.includes(task.id));
+      return updated;
+    });
+    try {
+      await saveTasksToStorage(updated);
+      console.log('✅ [deleteTasks] deleted successfully');
+    } catch (err) {
+      console.error('❌ [deleteTasks] saveTasks error:', err);
+    }
+  }, []);
+
   const updateTask = useCallback(async (id, updates) => {
     let updated = [];
     setTasks(prev => {
@@ -238,6 +253,7 @@ export function useData() {
     upcoming,
     addTask,
     removeTask,
+    deleteTasks,
     updateTask,
     isLikelyGoal
   };

@@ -8,6 +8,8 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { format, addDays } from 'date-fns';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -130,68 +132,73 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Swipeable
-        renderRightActions={renderRightActions}
-        onSwipeableRightOpen={handleSwipeLeft}
-        friction={2}
-        rightThreshold={40}
-        enabled={hasTouchscreen}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <Text style={styles.title}>FocusPatch</Text>
-            <TouchableOpacity 
-              style={styles.settingsButton}
-              onPress={() => navigation.navigate('Settings')}
-            >
-              <Text style={styles.settingsIcon}>⚙️</Text>
-            </TouchableOpacity>
-          </View>
-          {hasTouchscreen ? (
-            <Text style={styles.navigationHint}>Swipe left for Goals →</Text>
-          ) : (
-            <Text style={styles.navigationHint}>Press Right Arrow or 'G' key for Goals →</Text>
-          )}
-        </View>
-      
-        <ScrollView>
-          <View style={styles.calendarContainer}>
-            <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} />
-            <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} />
-            <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} />
-          </View>
-          
-          <View style={styles.upcomingContainer}>
-            <Text style={styles.sectionTitle}>Upcoming</Text>
-            
-            {upcoming.map(item => (
-              <UpcomingItem 
-                key={item.id}
-                item={item}
-                onPress={handleUpcomingPress}
-              />
-            ))}
-          </View>
-        </ScrollView>
-      </Swipeable>
-      
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="What do you want to do?"
-          value={taskInput}
-          onChangeText={setTaskInput}
-          onSubmitEditing={handleAddTask}
-        />
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={handleAddTask}
+    <KeyboardAvoidingView 
+      style={{flex: 1}} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <SafeAreaView style={styles.container}>
+        <Swipeable
+          renderRightActions={renderRightActions}
+          onSwipeableRightOpen={handleSwipeLeft}
+          friction={2}
+          rightThreshold={40}
+          enabled={hasTouchscreen}
         >
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+          <View style={styles.header}>
+            <View style={styles.headerTop}>
+              <Text style={styles.title}>FocusPatch</Text>
+              <TouchableOpacity 
+                style={styles.settingsButton}
+                onPress={() => navigation.navigate('Settings')}
+              >
+                <Text style={styles.settingsIcon}>⚙️</Text>
+              </TouchableOpacity>
+            </View>
+            {hasTouchscreen ? (
+              <Text style={styles.navigationHint}>Swipe left for Goals →</Text>
+            ) : (
+              <Text style={styles.navigationHint}>Press Right Arrow or 'G' key for Goals →</Text>
+            )}
+          </View>
+        
+          <ScrollView>
+            <View style={styles.calendarContainer}>
+              <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} />
+              <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} />
+              <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} />
+            </View>
+            
+            <View style={styles.upcomingContainer}>
+              <Text style={styles.sectionTitle}>Upcoming</Text>
+              
+              {upcoming.map(item => (
+                <UpcomingItem 
+                  key={item.id}
+                  item={item}
+                  onPress={handleUpcomingPress}
+                />
+              ))}
+            </View>
+          </ScrollView>
+        </Swipeable>
+        
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="What do you want to do?"
+            value={taskInput}
+            onChangeText={setTaskInput}
+            onSubmitEditing={handleAddTask}
+          />
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={handleAddTask}
+          >
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

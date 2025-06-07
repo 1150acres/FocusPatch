@@ -10,6 +10,7 @@ import {
   Modal,
   Alert,
   Pressable,
+  Platform,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { DeviceContext } from '../App';

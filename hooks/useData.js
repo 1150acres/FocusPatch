@@ -1,5 +1,33 @@
 import { useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+// Web-compatible storage wrapper
+const storage = {
+  async getItem(key) {
+    if (Platform.OS === 'web') {
+      try {
+        return localStorage.getItem(key);
+      } catch (error) {
+        console.warn('localStorage not available, using memory storage');
+        return null;
+      }
+    }
+    return AsyncStorage.getItem(key);
+  },
+  async setItem(key, value) {
+    if (Platform.OS === 'web') {
+      try {
+        localStorage.setItem(key, value);
+        return;
+      } catch (error) {
+        console.warn('localStorage not available, using memory storage');
+        return;
+      }
+    }
+    return AsyncStorage.setItem(key, value);
+  }
+};
 
 // HELPER: persist the full goals array (including nested steps) into AsyncStorage
 async function saveGoalsToStorage(goalsArray) {
@@ -7,7 +35,7 @@ async function saveGoalsToStorage(goalsArray) {
     // Always ensure we're writing an array; if not, fallback to sampleGoals
     const toStore = Array.isArray(goalsArray) ? goalsArray : sampleGoals;
     console.log('🔵 [saveGoalsToStorage] writing goals:', toStore);
-    await AsyncStorage.setItem('@goals', JSON.stringify(toStore));
+    await storage.setItem('@goals', JSON.stringify(toStore));
     console.log('✅ [saveGoalsToStorage] write complete');
   } catch (err) {
     console.error('❌ [saveGoalsToStorage] error:', err);
@@ -120,7 +148,7 @@ export function useData() {
 
   async function loadTasksFromStorage() {
     try {
-      const raw = await AsyncStorage.getItem('@tasks');
+      const raw = await storage.getItem('@tasks');
       if (!raw) {
         return sampleTasks;
       }
@@ -136,7 +164,7 @@ export function useData() {
     try {
       const toStore = Array.isArray(tasksArray) ? tasksArray : sampleTasks;
       console.log('🔵 [saveTasks] writing:', toStore);
-      await AsyncStorage.setItem('@tasks', JSON.stringify(toStore));
+      await storage.setItem('@tasks', JSON.stringify(toStore));
       console.log('✅ [saveTasks] write complete');
     } catch (err) {
       console.error('❌ [saveTasks] error:', err);
@@ -216,7 +244,7 @@ export function useGoals() {
 
   async function loadGoalsFromStorage() {
     try {
-      const raw = await AsyncStorage.getItem('@goals');
+      const raw = await storage.getItem('@goals');
       if (!raw) {
         return sampleGoals;
       }
@@ -266,7 +294,7 @@ export function useGoals() {
 
     // 1. Build the new array of goals by merging updates into the target goal:
     let updatedGoals = [];
-    await setGoals(prevGoals => {
+    setGoals(prevGoals => {
       updatedGoals = prevGoals.map(goal =>
         goal.id === goalId ? { ...goal, ...updates } : goal
       );
@@ -280,7 +308,7 @@ export function useGoals() {
     } catch (err) {
       console.error('❌ [updateGoal] saveGoalsToStorage error:', err);
     }
-  }, [setGoals]);
+  }, []);
 
   return {
     goals,

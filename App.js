@@ -95,22 +95,26 @@ export default function App() {
     isKeyboardListenerActive,
   }), [hasTouchscreen, isKeyboardListenerActive]);
 
-  return (
+  const AppContent = (
+    <DeviceContext.Provider value={contextValue}>
+      <NavigationContainer ref={setNavigationRefCallback}>
+        <Stack.Navigator 
+          screenOptions={{ 
+            headerShown: false,
+            animation: 'slide_from_right'
+          }}
+        >
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Goals" component={GoalsScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </DeviceContext.Provider>
+  );
+
+  return Platform.OS === 'web' ? AppContent : (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <DeviceContext.Provider value={contextValue}>
-        <NavigationContainer ref={setNavigationRefCallback}>
-          <Stack.Navigator 
-            screenOptions={{ 
-              headerShown: false,
-              animation: 'slide_from_right'
-            }}
-          >
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Goals" component={GoalsScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </DeviceContext.Provider>
+      {AppContent}
     </GestureHandlerRootView>
   );
 } 

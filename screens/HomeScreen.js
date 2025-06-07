@@ -137,50 +137,87 @@ export default function HomeScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <SafeAreaView style={styles.container}>
-        <Swipeable
-          renderRightActions={renderRightActions}
-          onSwipeableRightOpen={handleSwipeLeft}
-          friction={2}
-          rightThreshold={40}
-          enabled={hasTouchscreen}
-        >
-          <View style={styles.header}>
-            <View style={styles.headerTop}>
-              <Text style={styles.title}>FocusPatch</Text>
-              <TouchableOpacity 
-                style={styles.settingsButton}
-                onPress={() => navigation.navigate('Settings')}
-              >
-                <Text style={styles.settingsIcon}>⚙️</Text>
-              </TouchableOpacity>
+        {Platform.OS !== 'web' ? (
+          <Swipeable
+            renderRightActions={renderRightActions}
+            onSwipeableRightOpen={handleSwipeLeft}
+            friction={2}
+            rightThreshold={40}
+            enabled={hasTouchscreen}
+          >
+            <View style={styles.header}>
+              <View style={styles.headerTop}>
+                <Text style={styles.title}>FocusPatch</Text>
+                <TouchableOpacity 
+                  style={styles.settingsButton}
+                  onPress={() => navigation.navigate('Settings')}
+                >
+                  <Text style={styles.settingsIcon}>⚙️</Text>
+                </TouchableOpacity>
+              </View>
+              {hasTouchscreen ? (
+                <Text style={styles.navigationHint}>Swipe left for Goals →</Text>
+              ) : (
+                <Text style={styles.navigationHint}>Press Right Arrow or 'G' key for Goals →</Text>
+              )}
             </View>
-            {hasTouchscreen ? (
-              <Text style={styles.navigationHint}>Swipe left for Goals →</Text>
-            ) : (
-              <Text style={styles.navigationHint}>Press Right Arrow or 'G' key for Goals →</Text>
-            )}
-          </View>
-        
-          <ScrollView>
-            <View style={styles.calendarContainer}>
-              <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} />
-              <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} />
-              <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} />
-            </View>
-            
-            <View style={styles.upcomingContainer}>
-              <Text style={styles.sectionTitle}>Upcoming</Text>
+          
+            <ScrollView>
+              <View style={styles.calendarContainer}>
+                <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} />
+                <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} />
+                <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} />
+              </View>
               
-              {upcoming.map(item => (
-                <UpcomingItem 
-                  key={item.id}
-                  item={item}
-                  onPress={handleUpcomingPress}
-                />
-              ))}
+              <View style={styles.upcomingContainer}>
+                <Text style={styles.sectionTitle}>Upcoming</Text>
+                
+                {upcoming.map(item => (
+                  <UpcomingItem 
+                    key={item.id}
+                    item={item}
+                    onPress={handleUpcomingPress}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          </Swipeable>
+        ) : (
+          <View style={{flex: 1}}>
+            <View style={styles.header}>
+              <View style={styles.headerTop}>
+                <Text style={styles.title}>FocusPatch</Text>
+                <TouchableOpacity 
+                  style={styles.settingsButton}
+                  onPress={() => navigation.navigate('Settings')}
+                >
+                  <Text style={styles.settingsIcon}>⚙️</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.navigationHint}>Press Right Arrow or 'G' key for Goals →</Text>
             </View>
-          </ScrollView>
-        </Swipeable>
+          
+            <ScrollView>
+              <View style={styles.calendarContainer}>
+                <DayColumn dayOffset={0} tasks={tasks} baseDate={baseDate} />
+                <DayColumn dayOffset={1} tasks={tasks} baseDate={baseDate} />
+                <DayColumn dayOffset={2} tasks={tasks} baseDate={baseDate} />
+              </View>
+              
+              <View style={styles.upcomingContainer}>
+                <Text style={styles.sectionTitle}>Upcoming</Text>
+                
+                {upcoming.map(item => (
+                  <UpcomingItem 
+                    key={item.id}
+                    item={item}
+                    onPress={handleUpcomingPress}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
         
         <View style={styles.inputContainer}>
           <TextInput

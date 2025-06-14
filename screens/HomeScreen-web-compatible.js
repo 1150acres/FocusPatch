@@ -13,6 +13,23 @@ import {
 import { DeviceContext } from '../contexts/DeviceContext';
 import { useData } from '../hooks/useData';
 
+// Add this before the HomeScreen component
+const HOURS = Array.from({ length: 24 }, (_, i) => {
+  const hour = i % 12 === 0 ? 12 : i % 12;
+  const ampm = i < 12 ? 'AM' : 'PM';
+  return `${hour} ${ampm}`;
+});
+
+const TimeColumn = () => (
+  <View style={styles.timeColumn}>
+    {HOURS.map((label, idx) => (
+      <View key={label} style={styles.timeSlot}>
+        <Text style={styles.timeLabel}>{label}</Text>
+      </View>
+    ))}
+  </View>
+);
+
 export default function HomeScreen({ navigation }) {
   const [taskInput, setTaskInput] = useState('');
   const [selectedTasks, setSelectedTasks] = useState(new Set());
@@ -118,11 +135,19 @@ export default function HomeScreen({ navigation }) {
   const handleContextMenu = useCallback((e, idx, taskId) => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       e.preventDefault();
-      // Ensure the right task(s) are selected
-      handleTaskSelection(taskId, idx, e);
+      
+      // If the right-clicked task is not already selected, select it
+      // If it is already selected, keep the current selection (for multi-delete)
+      if (!selectedTasks.has(taskId)) {
+        // Task not selected - select just this task
+        setSelectedTasks(new Set([taskId]));
+        setLastIndex(idx);
+      }
+      // If task is already selected, keep current selection intact
+      
       setContextMenu({ visible: true, x: e.clientX, y: e.clientY });
     }
-  }, [handleTaskSelection]);
+  }, [selectedTasks]);
 
   // Close context menu
   const closeContextMenu = useCallback(() => {
@@ -301,6 +326,10 @@ export default function HomeScreen({ navigation }) {
   const ContextMenu = ({ x, y, onSelect }) => {
     if (Platform.OS !== 'web') return null;
 
+    const selectedCount = selectedTasks.size;
+    const deleteText = selectedCount > 1 ? `Delete ${selectedCount} tasks` : 'Delete';
+    const editText = selectedCount > 1 ? `Edit ${selectedCount} tasks` : 'Edit';
+
     const handleMenuClick = useCallback((e) => {
       // Prevent event bubbling to avoid closing the menu
       e.stopPropagation();
@@ -318,7 +347,7 @@ export default function HomeScreen({ navigation }) {
           padding: '4px 0',
           margin: 0,
           listStyle: 'none',
-          minWidth: '120px',
+          minWidth: '140px',
           zIndex: 1000,
           border: '1px solid #e0e0e0'
         }}
@@ -329,7 +358,7 @@ export default function HomeScreen({ navigation }) {
             padding: '8px 16px', 
             cursor: 'pointer',
             fontSize: '14px',
-            color: '#333'
+            color: '#999'
           }}
           onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
           onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
@@ -339,14 +368,14 @@ export default function HomeScreen({ navigation }) {
             onSelect('edit');
           }}
         >
-          Edit
+          {editText}
         </li>
         <li 
           style={{ 
             padding: '8px 16px', 
             cursor: 'pointer',
             fontSize: '14px',
-            color: '#333'
+            color: '#d32f2f'
           }}
           onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
           onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
@@ -356,7 +385,7 @@ export default function HomeScreen({ navigation }) {
             onSelect('delete');
           }}
         >
-          Delete
+          {deleteText}
         </li>
       </ul>
     );
@@ -414,19 +443,20 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
-
-
-      {/* Days Container */}
-      <View style={styles.daysContainer}>
-        {[0, 1, 2].map(dayOffset => (
-          <DayColumn
-            key={dayOffset}
-            dayOffset={dayOffset}
-            tasks={tasks}
-            baseDate={baseDate}
-            onToggleComplete={handleToggleComplete}
-          />
-        ))}
+      {/* Days Container with Time Column */}
+      <View style={styles.daysRowWithTime}>
+        <TimeColumn />
+        <View style={styles.daysContainer}>
+          {[0, 1, 2].map(dayOffset => (
+            <DayColumn
+              key={dayOffset}
+              dayOffset={dayOffset}
+              tasks={tasks}
+              baseDate={baseDate}
+              onToggleComplete={handleToggleComplete}
+            />
+          ))}
+        </View>
       </View>
 
       {/* Task Input - Bottom */}
@@ -723,5 +753,29 @@ const styles = StyleSheet.create({
       web: 'transparent',
     }),
   },
-
+  daysRowWithTime: {
+    flexDirection: 'row',
+    flex: 1,
+    width: '100%',
+    alignItems: 'stretch',
+    minHeight: 24 * 28, // Ensure enough height for 24 slots
+  },
+  timeColumn: {
+    width: 38,
+    paddingTop: 48, // To align with day headers
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
+    alignItems: 'flex-end',
+  },
+  timeSlot: {
+    height: 28, // More compact slot height
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  timeLabel: {
+    fontSize: 10,
+    color: '#888',
+    textAlign: 'right',
+    marginRight: 2,
+  },
 }); 

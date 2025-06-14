@@ -99,11 +99,11 @@ export default function App() {
             animation: 'slide_from_right'
           }}
         >
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Goals" component={GoalsScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Goals" component={GoalsScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      </Stack.Navigator>
+    </NavigationContainer>
     </DeviceContext.Provider>
   );
 

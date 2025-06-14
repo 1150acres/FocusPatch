@@ -285,7 +285,7 @@ export function useGoals() {
     })();
   }, []);
 
-  const addGoal = useCallback((newGoal) => {
+  const addGoal = useCallback(async (newGoal) => {
     console.log('Adding new goal:', newGoal);
     const goal = {
       id: `goal-${Date.now()}`,
@@ -295,18 +295,46 @@ export function useGoals() {
       icon: '🎯',
       ...newGoal
     };
+    let updatedGoals = [];
     setGoals(prev => {
       console.log('Previous goals:', prev);
-      const updated = [...prev, goal];
-      console.log('Updated goals:', updated);
-      return updated;
+      updatedGoals = [...prev, goal];
+      console.log('Updated goals:', updatedGoals);
+      return updatedGoals;
     });
+    
+    // Persist the changes to storage
+    try {
+      await saveGoalsToStorage(updatedGoals);
+      console.log('✅ [addGoal] save complete for goal:', goal.id);
+    } catch (err) {
+      console.error('❌ [addGoal] saveGoalsToStorage error:', err);
+    }
+    
     return goal;
   }, []);
 
   const removeGoal = useCallback((goalId) => {
-    console.log('Removing goal:', goalId);
-    setGoals(prev => prev.filter(goal => goal.id !== goalId));
+    console.log('[removeGoal] Called with goalId:', goalId);
+    return new Promise((resolve, reject) => {
+      let updatedGoals = [];
+      setGoals(prev => {
+        console.log('[removeGoal] Previous goals:', prev);
+        updatedGoals = prev.filter(goal => goal.id !== goalId);
+        console.log('[removeGoal] Updated goals after filter:', updatedGoals);
+        return updatedGoals;
+      });
+      // Persist the changes to storage
+      saveGoalsToStorage(updatedGoals)
+        .then(() => {
+          console.log('[removeGoal] saveGoalsToStorage complete. Final goals:', updatedGoals);
+          resolve(goalId);
+        })
+        .catch((err) => {
+          console.error('[removeGoal] saveGoalsToStorage error:', err);
+          reject(err);
+        });
+    });
   }, []);
 
   const updateGoal = useCallback(async (goalId, updates) => {

@@ -1,0 +1,22 @@
+{
+  "tasks": [
+    {
+      "id": "1750210130383",
+      "title": "port to python",
+      "time": "09:28 PM",
+      "category": "general",
+      "day": 0,
+      "completed": false
+    },
+    {
+      "id": "1750210141486",
+      "title": "write markts",
+      "time": "09:29 PM",
+      "category": "general",
+      "day": 0,
+      "completed": false
+    }
+  ],
+  "goals": [],
+  "lastSaved": "2025-06-17T21:29:01.486291"
+}

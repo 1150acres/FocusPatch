@@ -8,21 +8,61 @@ Built with Flet (Flutter for Python)
 import flet as ft
 import json
 import os
+import sys
+import platform
 from datetime import datetime
 import uuid
 import asyncio
 from typing import List, Dict, Any
+from pathlib import Path
 
 class FocusPatchApp:
     def __init__(self):
         self.tasks: List[Dict[str, Any]] = []
         self.goals: List[Dict[str, Any]] = []
         self.current_day = 0
-        self.data_file = "focuspatch_data.json"
+        
+        # Cross-platform data directory and file handling
+        self.data_dir = self._get_data_directory()
+        self.data_file = os.path.join(self.data_dir, "focuspatch_data.json")
         self.selected_goal_id = None
+        
+        # Ensure data directory exists
+        self._ensure_data_directory()
         
         # Load existing data
         self.load_data()
+    
+    def _get_data_directory(self) -> str:
+        """Get the appropriate data directory for the current OS"""
+        system = platform.system().lower()
+        
+        if system == "windows":
+            # Windows: Use AppData/Local
+            base_dir = os.environ.get('LOCALAPPDATA', os.path.expanduser('~'))
+            return os.path.join(base_dir, 'FocusPatch')
+        elif system == "darwin":  # macOS
+            # macOS: Use ~/Library/Application Support
+            base_dir = os.path.expanduser('~/Library/Application Support')
+            return os.path.join(base_dir, 'FocusPatch')
+        else:  # Linux and other Unix-like systems
+            # Linux: Use ~/.local/share or XDG_DATA_HOME
+            xdg_data_home = os.environ.get('XDG_DATA_HOME')
+            if xdg_data_home:
+                return os.path.join(xdg_data_home, 'FocusPatch')
+            else:
+                return os.path.join(os.path.expanduser('~'), '.local', 'share', 'FocusPatch')
+    
+    def _ensure_data_directory(self):
+        """Ensure the data directory exists"""
+        try:
+            os.makedirs(self.data_dir, exist_ok=True)
+            print(f"📁 [dataDir] Using: {self.data_dir}")
+        except Exception as e:
+            print(f"❌ [dataDir] Error creating directory: {e}")
+            # Fallback to current directory
+            self.data_dir = "."
+            self.data_file = "focuspatch_data.json"
     
     def load_data(self):
         """Load tasks and goals from JSON file"""
@@ -113,8 +153,8 @@ def main(page: ft.Page):
     # UI Components
     def create_app_bar():
         return ft.AppBar(
-            title=ft.Text("FocusPatch", color=ft.colors.WHITE),
-            bgcolor=ft.colors.BLUE_600,
+            title=ft.Text("FocusPatch", color="white"),
+            bgcolor="blue600",
             center_title=True
         )
     
@@ -127,9 +167,9 @@ def main(page: ft.Page):
             selected_index=0,
             on_change=on_nav_change,
             destinations=[
-                ft.NavigationDestination(icon=ft.icons.HOME, label="Home"),
-                ft.NavigationDestination(icon=ft.icons.FLAG, label="Goals"),
-                ft.NavigationDestination(icon=ft.icons.SETTINGS, label="Settings"),
+                ft.NavigationBarDestination(icon=ft.Icon(ft.icons.HOME), label="Home"),
+                ft.NavigationBarDestination(icon=ft.Icon(ft.icons.FLAG), label="Goals"),
+                ft.NavigationBarDestination(icon=ft.Icon(ft.icons.SETTINGS), label="Settings"),
             ]
         )
     
@@ -166,7 +206,7 @@ def main(page: ft.Page):
                         ),
                         ft.Column([
                             ft.Text(task['title'], size=14),
-                            ft.Text(task.get('time', ''), size=12, color=ft.colors.GREY_600)
+                            ft.Text(task.get('time', ''), size=12, color="grey600")
                         ], expand=True)
                     ]),
                     padding=10,
@@ -333,6 +373,47 @@ def main(page: ft.Page):
     # Load initial content
     update_content()
 
+def print_startup_info():
+    """Print startup information with OS detection"""
+    system = platform.system()
+    version = platform.version()
+    architecture = platform.architecture()[0]
+    python_version = sys.version.split()[0]
+    
+    print("=" * 50)
+    print("🚀 FocusPatch Python Version Starting...")
+    print("=" * 50)
+    print(f"🖥️  Operating System: {system}")
+    print(f"📋 OS Version: {version}")
+    print(f"🏗️  Architecture: {architecture}")
+    print(f"🐍 Python Version: {python_version}")
+    print(f"📁 Data Directory: {FocusPatchApp()._get_data_directory()}")
+    print("=" * 50)
+    print("🌐 Opening in web browser...")
+    print("📱 Close browser tab or press Ctrl+C to stop")
+    print("=" * 50)
+
 if __name__ == "__main__":
-    print("🚀 Starting FocusPatch Python Version...")
-    ft.app(target=main, view=ft.WEB_BROWSER) 
+    try:
+        print_startup_info()
+        
+        # Determine the best view mode based on OS
+        system = platform.system().lower()
+        if system == "windows":
+            # On Windows, prefer desktop app but fallback to web
+            try:
+                ft.app(target=main, view=ft.AppView.FLET_APP)
+            except:
+                print("⚠️  Desktop mode failed, opening in web browser...")
+                ft.app(target=main, view=ft.AppView.WEB_BROWSER)
+        else:
+            # On macOS/Linux, use web browser by default
+            ft.app(target=main, view=ft.AppView.WEB_BROWSER)
+            
+    except KeyboardInterrupt:
+        print("\n👋 FocusPatch stopped by user")
+    except Exception as e:
+        print(f"\n❌ Error starting FocusPatch: {e}")
+        print("💡 Try running with: python main.py")
+    finally:
+        print("🔚 FocusPatch Python Version stopped.") 

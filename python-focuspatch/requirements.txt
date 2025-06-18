@@ -1,0 +1,5 @@
+flet>=0.28.3
+datetime>=5.5
+uuid>=1.30
+json5>=0.9.0
+asyncio 

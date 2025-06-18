@@ -2,17 +2,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform } from 'react-native';
+import { Platform, Keyboard, KeyboardAvoidingView } from 'react-native';
 import { DeviceContext } from './contexts/DeviceContext';
-import HomeScreen from './screens/HomeScreen-test';
-import GoalsScreen from './screens/GoalsScreen';
-import SettingsScreen from './screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
+
+const HomeScreenOrig = Platform.OS === 'web'
+  ? require('./screens/HomeScreen-web-compatible').default
+  : require('./screens/HomeScreen-test').default;
 
 export default function App() {
   const [hasTouchscreen, setHasTouchscreen] = useState(false);
   const [isKeyboardListenerActive, setIsKeyboardListenerActive] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [navigationRef, setNavigationRef] = useState(null);
 
   // Memoized navigation ref setter to prevent unnecessary re-renders
@@ -84,11 +86,38 @@ export default function App() {
     };
   }, [hasTouchscreen, navigationRef, isKeyboardListenerActive, handleKeyDown]);
 
+  // iOS keyboard event observers
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      console.log('Platform.OS =', Platform.OS); // Log platform before registering listeners
+      const onKeyboardShow = () => {
+        setIsKeyboardVisible(true);
+        console.log('Keyboard shown (iOS)');
+      };
+      const onKeyboardHide = () => {
+        setIsKeyboardVisible(false);
+        console.log('Keyboard hidden (iOS)');
+      };
+      const showSub = Keyboard.addListener('keyboardDidShow', onKeyboardShow);
+      const hideSub = Keyboard.addListener('keyboardDidHide', onKeyboardHide);
+      return () => {
+        showSub.remove();
+        hideSub.remove();
+      };
+    }
+  }, []);
+
   // Context value memoization to prevent unnecessary re-renders
   const contextValue = React.useMemo(() => ({
     hasTouchscreen,
     isKeyboardListenerActive,
-  }), [hasTouchscreen, isKeyboardListenerActive]);
+    isKeyboardVisible,
+  }), [hasTouchscreen, isKeyboardListenerActive, isKeyboardVisible]);
+
+  // Wrap the HomeScreen export to inject KeyboardAvoidingView only around the input bar
+  function HomeScreenWithKeyboardAvoidingView(props) {
+    return <HomeScreenOrig {...props} KeyboardAvoidingView={KeyboardAvoidingView} />;
+  }
 
   const AppContent = (
     <DeviceContext.Provider value={contextValue}>
@@ -99,11 +128,11 @@ export default function App() {
             animation: 'slide_from_right'
           }}
         >
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Goals" component={GoalsScreen} />
+          <Stack.Screen name="Home" component={HomeScreenWithKeyboardAvoidingView} />
+          <Stack.Screen name="Goals" component={GoalsScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+        </Stack.Navigator>
+      </NavigationContainer>
     </DeviceContext.Provider>
   );
 

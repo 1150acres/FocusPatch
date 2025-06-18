@@ -3,12 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TextInput,
   TouchableOpacity,
   Platform,
   Alert,
+  KeyboardAvoidingView,
+  SafeAreaView,
 } from 'react-native';
 import { DeviceContext } from '../contexts/DeviceContext';
 import { useData } from '../hooks/useData';
@@ -392,91 +393,95 @@ export default function HomeScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView 
-      style={styles.container}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'position' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      {/* Context Menu */}
-      {contextMenu.visible && (
-        <ContextMenu 
-          x={contextMenu.x} 
-          y={contextMenu.y} 
-          onSelect={onMenuSelect} 
-        />
-      )}
-      
-      {/* Header */}
-      <View style={styles.header}>
-        {Platform.OS === 'web' && selectedTasks.size > 0 ? (
-          // Selection mode header (web only)
-          <>
-            <View style={styles.selectionInfo}>
-              <Text style={styles.selectionText}>
-                {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected
-              </Text>
-              <TouchableOpacity 
-                style={styles.clearSelectionButton}
-                onPress={clearSelection}
-              >
-                <Text style={styles.clearSelectionText}>Clear</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        ) : (
-          // Normal header
-          <>
-            <Text style={styles.title}>FocusPatch</Text>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity 
-                style={styles.goalsButton}
-                onPress={() => navigation.navigate('Goals')}
-              >
-                <Text style={styles.goalsButtonText}>🎯 Goals</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.settingsButton}
-                onPress={() => navigation.navigate('Settings')}
-              >
-                <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
-              </TouchableOpacity>
-            </View>
-          </>
+      <SafeAreaView style={styles.container}>
+        {/* Context Menu */}
+        {contextMenu.visible && (
+          <ContextMenu 
+            x={contextMenu.x} 
+            y={contextMenu.y} 
+            onSelect={onMenuSelect} 
+          />
         )}
-      </View>
-
-      {/* Days Container with Time Column */}
-      <View style={styles.daysRowWithTime}>
-        <TimeColumn />
-        <View style={styles.daysContainer}>
-          {[0, 1, 2].map(dayOffset => (
-            <DayColumn
-              key={dayOffset}
-              dayOffset={dayOffset}
-              tasks={tasks}
-              baseDate={baseDate}
-              onToggleComplete={handleToggleComplete}
-            />
-          ))}
+        
+        {/* Header */}
+        <View style={styles.header}>
+          {Platform.OS === 'web' && selectedTasks.size > 0 ? (
+            // Selection mode header (web only)
+            <>
+              <View style={styles.selectionInfo}>
+                <Text style={styles.selectionText}>
+                  {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected
+                </Text>
+                <TouchableOpacity 
+                  style={styles.clearSelectionButton}
+                  onPress={clearSelection}
+                >
+                  <Text style={styles.clearSelectionText}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            // Normal header
+            <>
+              <Text style={styles.title}>FocusPatch</Text>
+              <View style={styles.headerButtons}>
+                <TouchableOpacity 
+                  style={styles.goalsButton}
+                  onPress={() => navigation.navigate('Goals')}
+                >
+                  <Text style={styles.goalsButtonText}>🎯 Goals</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.settingsButton}
+                  onPress={() => navigation.navigate('Settings')}
+                >
+                  <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
-      </View>
 
-      {/* Task Input - Bottom */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.taskInput}
-          placeholder="Add a new task..."
-          value={taskInput}
-          onChangeText={setTaskInput}
-          onSubmitEditing={handleAddTask}
-          returnKeyType="done"
-        />
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={handleAddTask}
-        >
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+        {/* Days Container with Time Column */}
+        <View style={styles.daysRowWithTime}>
+          <TimeColumn />
+          <View style={styles.daysContainer}>
+            {[0, 1, 2].map(dayOffset => (
+              <DayColumn
+                key={dayOffset}
+                dayOffset={dayOffset}
+                tasks={tasks}
+                baseDate={baseDate}
+                onToggleComplete={handleToggleComplete}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* Task Input - Bottom */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.taskInput}
+            placeholder="Add a new task..."
+            value={taskInput}
+            onChangeText={setTaskInput}
+            onSubmitEditing={handleAddTask}
+            returnKeyType="done"
+          />
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={handleAddTask}
+          >
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

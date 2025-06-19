@@ -375,7 +375,7 @@ def main(page: ft.Page):
                     ft.Container(
                         content=ft.Column([
                             ft.Text("📱 iOS Access", size=18, weight=ft.FontWeight.BOLD),
-                            ft.Text(f"🌐 URL: http://{local_ip}:8550", size=14),
+                            ft.Text(f"🌐 URL: http://{local_ip}:8081", size=14),
                             ft.Text("1. Connect iOS device to same WiFi", size=12),
                             ft.Text("2. Open Safari and navigate to URL above", size=12),
                             ft.Text("3. Add to Home Screen for app-like experience", size=12),
@@ -458,9 +458,9 @@ def print_startup_info():
     print("=" * 60)
     print(f"🖥️  Host OS: {platform.system()} {platform.release()}")
     print(f"🐍 Python: {sys.version.split()[0]}")
-    print(f"🌐 Web Server: Starting on port 8550")
-    print(f"📍 Local Access: http://localhost:8550")
-    print(f"📱 iOS Access: http://{local_ip}:8550")
+    print(f"🌐 Web Server: Starting on port 8081")
+    print(f"📍 Local Access: http://localhost:8081")
+    print(f"📱 iOS Access: http://{local_ip}:8081")
     print("=" * 60)
     print("🎯 Features:")
     print("• Three-day column layout (matches Expo version)")
@@ -471,7 +471,7 @@ def print_startup_info():
     print("📋 iOS Instructions:")
     print("1. Make sure your iOS device is on the same WiFi network")
     print("2. Open Safari on your iOS device")
-    print(f"3. Navigate to: http://{local_ip}:8550")
+    print(f"3. Navigate to: http://{local_ip}:8081")
     print("4. Tap 'Share' → 'Add to Home Screen' for app-like experience")
     print("=" * 60)
 
@@ -479,11 +479,11 @@ if __name__ == "__main__":
     try:
         print_startup_info()
         # Run as web app on port 8550 with host accessible from network
-        ft.app(target=main, port=8550, host="0.0.0.0")
+        ft.app(target=main, port=8081, host="0.0.0.0")
     except KeyboardInterrupt:
         print("\n👋 FocusPatch Expo-style version stopped by user")
     except Exception as e:
         print(f"\n❌ Error starting FocusPatch: {e}")
-        print("💡 Make sure port 8550 is available")
+        print("💡 Make sure port 8081 is available")
     finally:
         print("🔚 FocusPatch Expo-style version stopped.") 

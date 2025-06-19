@@ -10,41 +10,98 @@ import {
   Alert,
   KeyboardAvoidingView,
   SafeAreaView,
+  Animated,
 } from 'react-native';
+// Disable gesture handlers entirely - we use web mouse events and touch events instead
+// This prevents PanGestureHandler errors while maintaining full functionality
+let PanGestureHandler = null, State = null;
 import { DeviceContext } from '../contexts/DeviceContext';
 import { useData } from '../hooks/useData';
+import { 
+  getCurrentSnappedTime, 
+  generateTimeSlots, 
+  snapTimeStringToQuarter,
+  getTimeSlotPosition,
+  positionToTimeString 
+} from '../utils/timeUtils';
 
-// Add this before the HomeScreen component
-const HOURS = Array.from({ length: 24 }, (_, i) => {
-  const hour = i % 12 === 0 ? 12 : i % 12;
-  const ampm = i < 12 ? 'AM' : 'PM';
-  return `${hour} ${ampm}`;
-});
+// Generate 15-minute time slots for the day (6 AM to 11 PM for better UX)
+const TIME_SLOTS = generateTimeSlots(6, 23);
+const SLOT_HEIGHT = 20; // Height of each 15-minute slot in pixels
 
 const TimeColumn = () => (
   <View style={styles.timeColumn}>
-    {HOURS.map((label, idx) => (
-      <View key={label} style={styles.timeSlot}>
-        <Text style={styles.timeLabel}>{label}</Text>
-      </View>
-    ))}
+    {TIME_SLOTS.map((slot, idx) => {
+      // Only show hour labels (every 4th slot)
+      const isHourMark = slot.minutes === 0;
+      const isHalfHour = slot.minutes === 30;
+      
+      return (
+        <View key={slot.slotId} style={[styles.timeSlot, { height: SLOT_HEIGHT }]}>
+          {isHourMark && (
+            <Text style={styles.timeLabel}>{slot.time.replace(' ', '')}</Text>
+          )}
+          {isHalfHour && (
+            <View style={styles.halfHourMark} />
+          )}
+          {!isHourMark && !isHalfHour && (
+            <View style={styles.quarterHourMark} />
+          )}
+        </View>
+      );
+    })}
   </View>
 );
 
 export default function HomeScreen({ navigation }) {
   const [taskInput, setTaskInput] = useState('');
+  const [inputHeight, setInputHeight] = useState(48); // Start with single line height
+  const [shouldTrackHeight, setShouldTrackHeight] = useState(false); // Only track height when needed
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [lastIndex, setLastIndex] = useState(null);
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
   const { hasTouchscreen } = useContext(DeviceContext);
   const { tasks, addTask, updateTask, deleteTasks } = useData();
 
+  // Inject clean scrollbar CSS for web (like ChatGPT)
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const style = document.createElement('style');
+      style.textContent = `
+        /* Clean scrollbar styling like ChatGPT */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #565869;
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #6c6d7a;
+        }
+        /* Firefox scrollbar */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #565869 transparent;
+        }
+      `;
+      document.head.appendChild(style);
+      
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, []);
+
   // Get current date and calculate day offsets
   const baseDate = useMemo(() => new Date(), []);
 
-  // Memoized day column component
-  const DayColumn = React.memo(({ dayOffset, tasks, baseDate, onToggleComplete }) => {
-    const { date, dayName, dayText, dayTasks } = useMemo(() => {
+  // Memoized day column component with time-based positioning
+  const DayColumn = React.memo(({ dayOffset, tasks, baseDate, onToggleComplete, onTaskDragEnd, onTaskResize }) => {
+    const { date, dayName, dayText, dayTasks, timeSlotHeight } = useMemo(() => {
       // Use native JavaScript instead of date-fns
       const date = new Date(baseDate);
       date.setDate(date.getDate() + dayOffset);
@@ -58,29 +115,63 @@ export default function HomeScreen({ navigation }) {
       
       const dayTasks = tasks.filter(task => task.day === dayOffset);
       
-      return { date, dayName, dayText, dayTasks };
+      // Calculate total height for the time grid
+      const timeSlotHeight = TIME_SLOTS.length * SLOT_HEIGHT;
+      
+      return { date, dayName, dayText, dayTasks, timeSlotHeight };
     }, [dayOffset, tasks, baseDate]);
 
     return (
-      <View style={styles.dayColumn}>
+      <View 
+        style={styles.dayColumn}
+        dataSet={{ dayColumn: dayOffset }}
+        nativeID={`day-column-${dayOffset}`}
+      >
         <View style={styles.dayHeader}>
           <Text style={styles.dayName}>{dayName}</Text>
           <Text style={styles.dayDate}>{dayText}</Text>
         </View>
-        <ScrollView style={styles.tasksContainer} showsVerticalScrollIndicator={false}>
+        
+        {/* Time Grid Background */}
+        <View style={[styles.timeGrid, { height: timeSlotHeight }]}>
+          {TIME_SLOTS.map((slot, idx) => (
+            <View 
+              key={slot.slotId} 
+              style={[
+                styles.timeGridSlot, 
+                { height: SLOT_HEIGHT },
+                slot.minutes === 0 && styles.hourGridSlot
+              ]} 
+            />
+          ))}
+          
+          {/* Positioned Tasks */}
           {dayTasks.map((task, taskIndex) => {
             // Calculate global index across all days for selection
             const globalIndex = tasks.findIndex(t => t.id === task.id);
+            
+            // Calculate position based on task time
+            const yPosition = getTimeSlotPosition(task.time, SLOT_HEIGHT, 6); // Start at 6 AM
+            
             return (
-              <TaskCard 
-                key={task.id} 
-                task={task} 
-                index={globalIndex}
-                onToggleComplete={onToggleComplete}
-              />
+              <View
+                key={task.id}
+                style={[
+                  styles.positionedTaskContainer,
+                  { top: yPosition }
+                ]}
+              >
+                <DraggableTaskCard 
+                  task={task} 
+                  index={globalIndex}
+                  onToggleComplete={onToggleComplete}
+                  onDragEnd={onTaskDragEnd}
+                  onResize={onTaskResize}
+                />
+              </View>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
     );
   });
@@ -155,6 +246,64 @@ export default function HomeScreen({ navigation }) {
     setContextMenu({ visible: false, x: 0, y: 0 });
   }, []);
 
+  // Helper function to determine which day column a position is over
+  const getTargetDayFromPosition = useCallback((clientX, clientY) => {
+    if (Platform.OS !== 'web') return null;
+    
+    try {
+      // Get the element at the cursor position
+      const elementAtPosition = document.elementFromPoint(clientX, clientY);
+      if (!elementAtPosition) return null;
+      
+      // Traverse up the DOM tree to find a day column
+      let currentElement = elementAtPosition;
+      let maxDepth = 10; // Prevent infinite loops
+      
+      while (currentElement && maxDepth > 0) {
+        // Check if this element is a day column
+        if (currentElement.id && currentElement.id.startsWith('day-column-')) {
+          const dayIndex = parseInt(currentElement.id.replace('day-column-', ''));
+          if (!isNaN(dayIndex)) {
+            return dayIndex;
+          }
+        }
+        
+        // Check data attributes
+        if (currentElement.getAttribute && currentElement.getAttribute('data-day-column')) {
+          const dayIndex = parseInt(currentElement.getAttribute('data-day-column'));
+          if (!isNaN(dayIndex)) {
+            return dayIndex;
+          }
+        }
+        
+        currentElement = currentElement.parentElement;
+        maxDepth--;
+      }
+      
+      // Fallback: calculate based on horizontal position
+      // Assuming three equal-width columns
+      const dayColumns = document.querySelectorAll('[id^="day-column-"]');
+      if (dayColumns.length > 0) {
+        const firstColumn = dayColumns[0];
+        const rect = firstColumn.getBoundingClientRect();
+        const columnWidth = rect.width;
+        const leftmostX = rect.left;
+        
+        const relativeX = clientX - leftmostX;
+        const columnIndex = Math.floor(relativeX / columnWidth);
+        
+        if (columnIndex >= 0 && columnIndex < 3) {
+          return columnIndex;
+        }
+      }
+      
+    } catch (error) {
+      console.warn('Error detecting target day column:', error);
+    }
+    
+    return null;
+  }, []);
+
   // Add event listeners for outside click and escape key
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -192,16 +341,26 @@ export default function HomeScreen({ navigation }) {
     };
   }, [contextMenu.visible, selectedTasks.size, closeContextMenu, clearSelection]);
 
-  // Task card component with web-only selection support
-  const TaskCard = React.memo(({ task, index, onToggleComplete }) => {
+  // Draggable Task Card Component
+  const DraggableTaskCard = React.memo(({ task, index, onToggleComplete, onDragEnd, onResize }) => {
+    const translateY = new Animated.Value(0);
+    const scale = new Animated.Value(1);
+    const [isDragging, setIsDragging] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
+    const [webTranslateY, setWebTranslateY] = useState(0);
+    const [webHeight, setWebHeight] = useState(0);
     const isSelected = Platform.OS === 'web' ? selectedTasks.has(task.id) : false;
+    
+    // Calculate task height based on duration (default to 1 slot = 15 minutes)
+    const taskDuration = task.duration || 15; // Default 15 minutes
+    const taskHeight = Math.max(SLOT_HEIGHT, (taskDuration / 15) * SLOT_HEIGHT);
 
     const handlePress = useCallback((event) => {
-      // Only handle selection on web
-      if (Platform.OS === 'web') {
+      // Only handle selection on web if not dragging
+      if (Platform.OS === 'web' && !isDragging) {
         handleTaskSelection(task.id, index, event);
       }
-    }, [task.id, index]);
+    }, [task.id, index, isDragging]);
 
     const handleRightClick = useCallback((event) => {
       // Only handle context menu on web
@@ -209,6 +368,247 @@ export default function HomeScreen({ navigation }) {
         handleContextMenu(event, index, task.id);
       }
     }, [task.id, index]);
+
+    // Web drag handlers
+    const handleMouseDown = useCallback((event) => {
+      if (Platform.OS === 'web') {
+        event.preventDefault();
+        const startY = event.clientY;
+        const startX = event.clientX;
+        const initialPosition = getTimeSlotPosition(task.time, SLOT_HEIGHT, 6);
+        setIsDragging(true);
+        
+        const handleMouseMove = (e) => {
+          const deltaY = e.clientY - startY;
+          const deltaX = e.clientX - startX;
+          
+          // Calculate snapped position for visual feedback
+          const newPosition = initialPosition + deltaY;
+          const newTime = positionToTimeString(newPosition, SLOT_HEIGHT, 6);
+          const snappedTime = snapTimeStringToQuarter(newTime);
+          const snappedPosition = getTimeSlotPosition(snappedTime, SLOT_HEIGHT, 6);
+          const snappedDelta = snappedPosition - initialPosition;
+          
+          // Use snapped position for visual feedback
+          setWebTranslateY(snappedDelta);
+          
+          // Add visual feedback for cross-day dragging
+          if (Math.abs(deltaX) > 50) {
+            // Change cursor or add visual indicator for cross-day drag
+            document.body.style.cursor = 'move';
+            
+            // Highlight potential drop zones
+            const targetDay = getTargetDayFromPosition(e.clientX, e.clientY);
+            
+            // Remove previous highlights
+            document.querySelectorAll('[id^="day-column-"]').forEach(col => {
+              col.style.backgroundColor = '';
+              col.style.borderColor = '';
+            });
+            
+            // Highlight current target
+            if (targetDay !== null && targetDay !== task.day) {
+              const targetColumn = document.getElementById(`day-column-${targetDay}`);
+              if (targetColumn) {
+                targetColumn.style.backgroundColor = '#007AFF10';
+                targetColumn.style.borderColor = '#007AFF';
+                targetColumn.style.borderWidth = '2px';
+                targetColumn.style.borderStyle = 'dashed';
+              }
+            }
+          } else {
+            document.body.style.cursor = 'grabbing';
+            
+            // Remove highlights when not cross-dragging
+            document.querySelectorAll('[id^="day-column-"]').forEach(col => {
+              col.style.backgroundColor = '';
+              col.style.borderColor = '';
+              col.style.borderWidth = '';
+              col.style.borderStyle = '';
+            });
+          }
+        };
+
+        const handleMouseUp = (e) => {
+          const deltaY = e.clientY - startY;
+          const deltaX = e.clientX - startX;
+          setIsDragging(false);
+          
+          // Reset cursor and clean up visual feedback
+          document.body.style.cursor = '';
+          
+          // Remove all column highlights
+          document.querySelectorAll('[id^="day-column-"]').forEach(col => {
+            col.style.backgroundColor = '';
+            col.style.borderColor = '';
+            col.style.borderWidth = '';
+            col.style.borderStyle = '';
+          });
+          
+          // Check if dropped on a different day column
+          const targetDay = getTargetDayFromPosition(e.clientX, e.clientY);
+          
+          // Calculate new time based on drag position
+          const moved = Math.abs(deltaY) > 10 || Math.abs(deltaX) > 50;
+          
+          if (moved) {
+            const newPosition = initialPosition + deltaY;
+            const newTime = positionToTimeString(newPosition, SLOT_HEIGHT, 6);
+            const snappedTime = snapTimeStringToQuarter(newTime);
+            
+            // If dropped on a different day or time changed
+            if ((targetDay !== null && targetDay !== task.day) || 
+                (snappedTime && snappedTime !== task.time)) {
+              onDragEnd(task.id, snappedTime, targetDay !== null ? targetDay : task.day);
+            }
+          }
+          
+          // Reset position
+          setWebTranslateY(0);
+          
+          // Remove event listeners
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      }
+    }, [task.id, task.time, task.day, onDragEnd, translateY]);
+
+    // Web resize handlers
+    const handleResizeMouseDown = useCallback((event) => {
+      if (Platform.OS === 'web') {
+        event.preventDefault();
+        event.stopPropagation(); // Prevent dragging when resizing
+        const startY = event.clientY;
+        const initialHeight = taskHeight;
+        setIsResizing(true);
+        
+        const handleMouseMove = (e) => {
+          const deltaY = e.clientY - startY;
+          const newHeight = Math.max(SLOT_HEIGHT, initialHeight + deltaY);
+          
+          // Snap to 15-minute intervals
+          const snappedSlots = Math.round(newHeight / SLOT_HEIGHT);
+          const snappedHeight = snappedSlots * SLOT_HEIGHT;
+          
+          setWebHeight(snappedHeight - initialHeight);
+        };
+
+        const handleMouseUp = (e) => {
+          const deltaY = e.clientY - startY;
+          setIsResizing(false);
+          
+          // Calculate new duration based on height change
+          if (Math.abs(deltaY) > 5) {
+            const newHeight = Math.max(SLOT_HEIGHT, initialHeight + deltaY);
+            const snappedSlots = Math.round(newHeight / SLOT_HEIGHT);
+            const newDuration = snappedSlots * 15; // 15 minutes per slot
+            
+            if (newDuration !== taskDuration && onResize) {
+              onResize(task.id, newDuration);
+            }
+          }
+          
+          // Reset height
+          setWebHeight(0);
+          
+          // Remove event listeners
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      }
+    }, [task.id, taskHeight, taskDuration, onResize]);
+
+    // Mobile gesture handlers
+    const onGestureEvent = useCallback((event) => {
+      const { translationY } = event.nativeEvent;
+      
+      // Calculate snapped position for visual feedback
+      const initialPosition = getTimeSlotPosition(task.time, SLOT_HEIGHT, 6);
+      const newPosition = initialPosition + translationY;
+      const newTime = positionToTimeString(newPosition, SLOT_HEIGHT, 6);
+      const snappedTime = snapTimeStringToQuarter(newTime);
+      const snappedPosition = getTimeSlotPosition(snappedTime, SLOT_HEIGHT, 6);
+      const snappedDelta = snappedPosition - initialPosition;
+      
+      // Use snapped position for visual feedback
+      translateY.setValue(snappedDelta);
+    }, [translateY, task.time]);
+
+    const onHandlerStateChange = useCallback((event) => {
+      const { state, translationY } = event.nativeEvent;
+      
+      if (state === State.BEGAN) {
+        setIsDragging(true);
+        Animated.spring(scale, {
+          toValue: 1.05,
+          useNativeDriver: true,
+        }).start();
+      } else if (state === State.END || state === State.CANCELLED) {
+        setIsDragging(false);
+        
+        // Calculate new time based on drag position
+        if (Math.abs(translationY) > 10) { // Only if dragged significantly
+          const newPosition = getTimeSlotPosition(task.time, SLOT_HEIGHT, 6) + translationY;
+          const newTime = positionToTimeString(newPosition, SLOT_HEIGHT, 6);
+          
+          // Snap to 15-minute intervals
+          const snappedTime = snapTimeStringToQuarter(newTime);
+          
+          if (snappedTime && snappedTime !== task.time) {
+            // For mobile, we only support time changes, not day changes
+            // Cross-day dragging is a web-only feature due to complexity
+            onDragEnd(task.id, snappedTime, task.day);
+          }
+        }
+        
+        // Reset animations
+        Animated.parallel([
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scale, {
+            toValue: 1,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+    }, [task.id, task.time, task.day, onDragEnd, translateY, scale]);
+
+    const TaskCardContent = () => {
+      // Format duration for display
+      const formatDuration = (minutes) => {
+        if (minutes < 60) return `${minutes}m`;
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+      };
+
+      return (
+        <View style={styles.taskContent}>
+          <Text 
+            style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {task.title}
+          </Text>
+          <Text 
+            style={styles.taskTime}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {task.time} {task.duration && `• ${formatDuration(task.duration)}`}
+          </Text>
+        </View>
+      );
+    };
 
     // Use different components for web vs mobile
     if (Platform.OS === 'web') {
@@ -218,58 +618,61 @@ export default function HomeScreen({ navigation }) {
             ...StyleSheet.flatten([
               styles.taskCard, 
               task.completed && styles.taskCardCompleted,
-              isSelected && styles.taskCardSelected
+              isSelected && styles.taskCardSelected,
+              (isDragging || isResizing) && styles.taskCardDragging
             ]),
-            cursor: 'pointer',
-            userSelect: 'none'
+            cursor: isDragging ? 'grabbing' : isResizing ? 'ns-resize' : 'grab',
+            userSelect: 'none',
+            transform: `translateY(${webTranslateY}px)`,
+            height: `${taskHeight + webHeight}px`,
+            position: 'relative',
           }}
           onClick={handlePress}
           onContextMenu={handleRightClick}
+          onMouseDown={handleMouseDown}
         >
-          <View style={styles.taskContent}>
-            <Text 
-              style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {task.title}
-            </Text>
-            <Text 
-              style={styles.taskTime}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {task.time}
-            </Text>
-          </View>
+          <TaskCardContent />
+          {/* Resize Handle */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '6px',
+              cursor: 'ns-resize',
+              backgroundColor: 'transparent',
+              borderBottom: isResizing ? '2px solid #007AFF' : '2px solid transparent',
+              transition: isResizing ? 'none' : 'border-color 0.2s ease',
+            }}
+            onMouseDown={handleResizeMouseDown}
+            onMouseEnter={(e) => {
+              if (!isResizing && !isDragging) {
+                e.target.style.borderBottomColor = '#007AFF40';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isResizing) {
+                e.target.style.borderBottomColor = 'transparent';
+              }
+            }}
+          />
         </div>
       );
     } else {
-      // Mobile version - simple View
+      // Mobile version - simple TouchableOpacity without gesture handlers
       return (
-        <View 
+        <TouchableOpacity
           style={[
             styles.taskCard, 
-            task.completed && styles.taskCardCompleted
+            task.completed && styles.taskCardCompleted,
+            { height: taskHeight }
           ]}
+          onPress={() => onToggleComplete(task.id)}
+          activeOpacity={0.7}
         >
-          <View style={styles.taskContent}>
-            <Text 
-              style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {task.title}
-            </Text>
-            <Text 
-              style={styles.taskTime}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {task.time}
-            </Text>
-          </View>
-        </View>
+          <TaskCardContent />
+        </TouchableOpacity>
       );
     }
   });
@@ -282,22 +685,84 @@ export default function HomeScreen({ navigation }) {
     }));
   }, [updateTask]);
 
+  // Handle task drag end
+  const handleTaskDragEnd = useCallback((taskId, newTime, newDay) => {
+    updateTask(taskId, (task) => ({
+      ...task,
+      time: newTime,
+      ...(newDay !== undefined && { day: newDay })
+    }));
+  }, [updateTask]);
+
+  // Handle task resize
+  const handleTaskResize = useCallback((taskId, newDuration) => {
+    updateTask(taskId, (task) => ({
+      ...task,
+      duration: newDuration
+    }));
+  }, [updateTask]);
+
   // Handle adding new task
   const handleAddTask = useCallback(() => {
     if (!taskInput.trim()) return;
     
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // Use snapped time instead of exact current time
+    const snappedTime = getCurrentSnappedTime();
     
     addTask({
       title: taskInput,
-      time: timeString,
+      time: snappedTime,
       day: 0, // Add to today by default
-      category: 'general'
+      category: 'general',
+      duration: 30 // Default 30 minutes
     });
     
     setTaskInput('');
+    setInputHeight(48); // Reset to single line height
+    setShouldTrackHeight(false); // Reset height tracking
   }, [taskInput, addTask]);
+
+  // Handle content size change for dynamic height
+  const handleContentSizeChange = useCallback((event) => {
+    if (!shouldTrackHeight) return; // Don't track height initially
+    
+    const { height } = event.nativeEvent.contentSize;
+    
+    // Only expand if we have multiple lines or very long single line
+    // For single line, content height should be around 24px (lineHeight)
+    const singleLineThreshold = 26; // Slightly higher than 24px to account for variations
+    const minInputHeight = 48; // Our target single-line height
+    const maxInputHeight = 120; // Maximum allowed height
+    
+    // Only expand if content is definitely larger than single line
+    if (height > singleLineThreshold) {
+      // Calculate new height: content + padding (12px top + 12px bottom)
+      const newHeight = Math.min(height + 24, maxInputHeight);
+      setInputHeight(newHeight);
+    } else {
+      // Keep at minimum height for single line
+      setInputHeight(minInputHeight);
+    }
+  }, [shouldTrackHeight]);
+
+  // Handle key press for Enter vs Shift+Enter
+  const handleKeyPress = useCallback((event) => {
+    if (Platform.OS === 'web') {
+      const { key, shiftKey } = event.nativeEvent;
+      
+      if (key === 'Enter') {
+        if (shiftKey) {
+          // Shift+Enter: Allow new line and enable height tracking
+          setShouldTrackHeight(true);
+          return;
+        } else {
+          // Enter: Add task
+          event.preventDefault();
+          handleAddTask();
+        }
+      }
+    }
+  }, [handleAddTask]);
 
   // Handle menu actions
   const onMenuSelect = useCallback(async (action) => {
@@ -393,102 +858,103 @@ export default function HomeScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'position' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      <SafeAreaView style={styles.container}>
-        {/* Context Menu */}
-        {contextMenu.visible && (
-          <ContextMenu 
-            x={contextMenu.x} 
-            y={contextMenu.y} 
-            onSelect={onMenuSelect} 
-          />
+    <SafeAreaView style={styles.container}>
+      {/* Context Menu */}
+      {contextMenu.visible && (
+        <ContextMenu 
+          x={contextMenu.x} 
+          y={contextMenu.y} 
+          onSelect={onMenuSelect} 
+        />
+      )}
+      {/* Header */}
+      <View style={styles.header}>
+        {Platform.OS === 'web' && selectedTasks.size > 0 ? (
+          // Selection mode header (web only)
+          <>
+            <View style={styles.selectionInfo}>
+              <Text style={styles.selectionText}>
+                {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected
+              </Text>
+              <TouchableOpacity 
+                style={styles.clearSelectionButton}
+                onPress={clearSelection}
+              >
+                <Text style={styles.clearSelectionText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          // Normal header
+          <>
+            <Text style={styles.title}>FocusPatch</Text>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.goalsButton}
+                onPress={() => navigation.navigate('Goals')}
+              >
+                <Text style={styles.goalsButtonText}>🎯 Goals</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.settingsButton}
+                onPress={() => navigation.navigate('Settings')}
+              >
+                <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
-        
-        {/* Header */}
-        <View style={styles.header}>
-          {Platform.OS === 'web' && selectedTasks.size > 0 ? (
-            // Selection mode header (web only)
-            <>
-              <View style={styles.selectionInfo}>
-                <Text style={styles.selectionText}>
-                  {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected
-                </Text>
-                <TouchableOpacity 
-                  style={styles.clearSelectionButton}
-                  onPress={clearSelection}
-                >
-                  <Text style={styles.clearSelectionText}>Clear</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            // Normal header
-            <>
-              <Text style={styles.title}>FocusPatch</Text>
-              <View style={styles.headerButtons}>
-                <TouchableOpacity 
-                  style={styles.goalsButton}
-                  onPress={() => navigation.navigate('Goals')}
-                >
-                  <Text style={styles.goalsButtonText}>🎯 Goals</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.settingsButton}
-                  onPress={() => navigation.navigate('Settings')}
-                >
-                  <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </View>
-
-        {/* Days Container with Time Column */}
-        <View style={styles.daysRowWithTime}>
-          <TimeColumn />
-          <View style={styles.daysContainer}>
-            {[0, 1, 2].map(dayOffset => (
-              <DayColumn
-                key={dayOffset}
-                dayOffset={dayOffset}
-                tasks={tasks}
-                baseDate={baseDate}
-                onToggleComplete={handleToggleComplete}
-              />
-            ))}
+      </View>
+      {/* Days Container with Time Column */}
+      <View style={{ flex: 1 }}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.daysRowWithTime}>
+            <TimeColumn />
+            <View style={styles.daysContainer}>
+              {[0, 1, 2].map(dayOffset => (
+                <DayColumn
+                  key={dayOffset}
+                  dayOffset={dayOffset}
+                  tasks={tasks}
+                  baseDate={baseDate}
+                  onToggleComplete={handleToggleComplete}
+                  onTaskDragEnd={handleTaskDragEnd}
+                  onTaskResize={handleTaskResize}
+                />
+              ))}
+            </View>
           </View>
-        </View>
-
-        {/* Task Input - Bottom */}
+        </ScrollView>
+      </View>
+      {/* Task Input - Bottom */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'position' : undefined}
+        keyboardVerticalOffset={0}
+      >
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.taskInput}
-            placeholder="Add a new task..."
+            style={[styles.taskInput, { height: inputHeight }]}
+            placeholder="Message FocusPatch"
             value={taskInput}
             onChangeText={setTaskInput}
-            onSubmitEditing={handleAddTask}
+            onKeyPress={handleKeyPress}
             returnKeyType="done"
+            blurOnSubmit={false}
+            multiline={true}
+            textAlignVertical="top"
+            scrollEnabled={false}
+            onContentSizeChange={handleContentSizeChange}
           />
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={handleAddTask}
-          >
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#343541',
   },
   header: {
     flexDirection: 'row',
@@ -496,14 +962,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: 'white',
+    backgroundColor: '#202123',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#565869',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#ffffff',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -558,48 +1024,52 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-      web: {
-        boxShadow: '0 -2px 4px rgba(0,0,0,0.1)',
-      },
+    paddingVertical: 16,
+    backgroundColor: 'transparent',
+    marginHorizontal: 0,
+    marginBottom: Platform.select({
+      ios: 20,
+      android: 20,
+      web: 0,
     }),
+    minHeight: 76,
+    alignItems: 'flex-end',
   },
   taskInput: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    marginRight: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#40414f',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#565869',
+    color: '#ffffff',
+    ...Platform.select({
+      web: {
+        outline: 'none',
+        resize: 'none',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        lineHeight: '24px',
+        transition: 'all 0.2s ease',
+        ':focus': {
+          borderColor: '#10a37f',
+          backgroundColor: '#40414f',
+          boxShadow: '0 0 0 1px #10a37f',
+        },
+        '::placeholder': {
+          color: '#8e8ea0',
+        },
+      },
+      ios: {
+        textAlignVertical: 'top',
+      },
+      android: {
+        textAlignVertical: 'top',
+      },
+    }),
   },
-  addButton: {
-    backgroundColor: '#007AFF',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
+
   daysContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -672,14 +1142,28 @@ const styles = StyleSheet.create({
   },
   taskCard: {
     flexDirection: 'row',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    marginBottom: 8, // Reduced spacing to fit more cards
-    alignItems: 'center', // Center align for better mobile layout
-    minHeight: Platform.select({
-      ios: 50, // Smaller height on mobile
-      android: 50,
-      web: 70,
+    backgroundColor: '#fff',
+    borderRadius: 4,
+    marginBottom: 1,
+    alignItems: 'center',
+    minHeight: SLOT_HEIGHT - 4,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
+      },
+      android: {
+        elevation: 1,
+      },
+      web: {
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+      },
     }),
   },
   taskCardCompleted: {
@@ -694,93 +1178,114 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#007AFF',
   },
+  taskCardDragging: {
+    backgroundColor: '#fff',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+      web: {
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+      },
+    }),
+    borderColor: '#007AFF',
+    borderWidth: 2,
+  },
   taskContent: {
     flex: 1,
-    flexShrink: 1, // Allow shrinking but prioritize this area
-    paddingVertical: Platform.select({
-      ios: 8, // Reduced vertical padding for more compact layout
-      android: 8,
-      web: 15,
-    }),
-    paddingHorizontal: Platform.select({
-      ios: 8, // Minimal horizontal padding to maximize text space
-      android: 8,
-      web: 15,
-    }),
-    justifyContent: 'center', // Center content vertically
-    minWidth: 0, // Allow flex shrinking to prevent text overflow
-    backgroundColor: Platform.select({
-      ios: 'rgba(255,255,0,0.3)', // Debug: yellow background on mobile
-      android: 'rgba(255,255,0,0.3)',
-      web: 'transparent',
-    }),
+    flexShrink: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    justifyContent: 'center',
+    minWidth: 0,
   },
   taskTitle: {
-    fontSize: Platform.select({
-      ios: 16, // Larger now that we have more space without delete button
-      android: 16,
-      web: 14,
-    }),
-    fontWeight: '700', // Bold but not too heavy
-    color: Platform.select({
-      ios: '#000', // Pure black for maximum contrast
-      android: '#000',
-      web: '#333',
-    }),
-    lineHeight: 18, // Tighter line height
-    marginBottom: 2, // Reduced margin
-    backgroundColor: Platform.select({
-      ios: 'rgba(0,255,0,0.2)', // Debug: light green background
-      android: 'rgba(0,255,0,0.2)',
-      web: 'transparent',
-    }),
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+    lineHeight: 14,
+    marginBottom: 1,
   },
   taskTitleCompleted: {
     textDecorationLine: 'line-through',
     color: '#999',
   },
   taskTime: {
-    fontSize: Platform.select({
-      ios: 12, // Larger now that we have more space
-      android: 12,
-      web: 12,
-    }),
-    color: Platform.select({
-      ios: '#666', // Lighter color for secondary text
-      android: '#666',
-      web: '#666',
-    }),
-    marginTop: 2, // Reduced margin
-    lineHeight: 14, // Tighter line height
-    backgroundColor: Platform.select({
-      ios: 'rgba(0,0,255,0.2)', // Debug: light blue background
-      android: 'rgba(0,0,255,0.2)',
-      web: 'transparent',
-    }),
+    fontSize: 10,
+    color: '#666',
+    lineHeight: 12,
   },
   daysRowWithTime: {
     flexDirection: 'row',
-    flex: 1,
     width: '100%',
     alignItems: 'stretch',
-    minHeight: 24 * 28, // Ensure enough height for 24 slots
+    height: TIME_SLOTS.length * SLOT_HEIGHT, // Fixed height for time grid
   },
   timeColumn: {
-    width: 38,
+    width: 50,
     paddingTop: 48, // To align with day headers
     paddingBottom: 0,
     backgroundColor: 'transparent',
     alignItems: 'flex-end',
   },
   timeSlot: {
-    height: 28, // More compact slot height
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f0f0f0',
   },
   timeLabel: {
-    fontSize: 10,
-    color: '#888',
+    fontSize: 9,
+    color: '#666',
     textAlign: 'right',
-    marginRight: 2,
+    marginRight: 4,
+    fontWeight: '500',
+  },
+  halfHourMark: {
+    width: 8,
+    height: 0.5,
+    backgroundColor: '#ccc',
+    marginRight: 4,
+  },
+  quarterHourMark: {
+    width: 4,
+    height: 0.5,
+    backgroundColor: '#e0e0e0',
+    marginRight: 4,
+  },
+  timeGrid: {
+    flex: 1,
+    position: 'relative',
+    backgroundColor: '#fafafa',
+  },
+  timeGridSlot: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f0f0f0',
+  },
+  hourGridSlot: {
+    borderBottomColor: '#ddd',
+    borderBottomWidth: 1,
+  },
+  positionedTaskContainer: {
+    position: 'absolute',
+    left: 4,
+    right: 4,
+    minHeight: SLOT_HEIGHT - 2,
+    zIndex: 1,
+  },
+  resizeHandle: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 6,
+    cursor: 'ns-resize',
+    backgroundColor: 'transparent',
   },
 }); 

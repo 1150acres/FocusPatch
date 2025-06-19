@@ -1,15 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform, Keyboard, KeyboardAvoidingView } from 'react-native';
+import { Platform, Keyboard, KeyboardAvoidingView, View } from 'react-native';
 import { DeviceContext } from './contexts/DeviceContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+
+// Use regular View instead of GestureHandlerRootView to avoid gesture handler issues
+let GestureHandlerRootView = View;
+if (Platform.OS !== 'web') {
+  GestureHandlerRootView = require('react-native-gesture-handler').GestureHandlerRootView;
+}
 
 const Stack = createNativeStackNavigator();
 
-const HomeScreenOrig = Platform.OS === 'web'
-  ? require('./screens/HomeScreen-web-compatible').default
-  : require('./screens/HomeScreen-test').default;
+// Use the same web-compatible HomeScreen for all platforms - it has responsive design
+const HomeScreenOrig = require('./screens/HomeScreen-web-compatible').default;
+
+// Import other screens
+const GoalsScreen = require('./screens/GoalsScreen').default;
+const SettingsScreen = require('./screens/SettingsScreen').default;
 
 export default function App() {
   const [hasTouchscreen, setHasTouchscreen] = useState(false);
@@ -120,23 +129,25 @@ export default function App() {
   }
 
   const AppContent = (
-    <DeviceContext.Provider value={contextValue}>
-      <NavigationContainer ref={setNavigationRefCallback}>
-        <Stack.Navigator 
-          screenOptions={{ 
-            headerShown: false,
-            animation: 'slide_from_right'
-          }}
-        >
-          <Stack.Screen name="Home" component={HomeScreenWithKeyboardAvoidingView} />
-          <Stack.Screen name="Goals" component={GoalsScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </DeviceContext.Provider>
+    <ThemeProvider>
+      <DeviceContext.Provider value={contextValue}>
+        <NavigationContainer ref={setNavigationRefCallback}>
+          <Stack.Navigator 
+            screenOptions={{ 
+              headerShown: false,
+              animation: 'slide_from_right'
+            }}
+          >
+            <Stack.Screen name="Home" component={HomeScreenWithKeyboardAvoidingView} />
+            <Stack.Screen name="Goals" component={GoalsScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </DeviceContext.Provider>
+    </ThemeProvider>
   );
 
-  return Platform.OS === 'web' ? AppContent : (
+  return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {AppContent}
     </GestureHandlerRootView>

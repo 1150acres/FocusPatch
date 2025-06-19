@@ -13,7 +13,6 @@ import {
   Platform,
   FlatList,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
 import { DeviceContext } from '../contexts/DeviceContext';
 import { useGoals } from '../hooks/useData';
 import { useNavigation } from '@react-navigation/native';
@@ -1205,12 +1204,33 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   modalInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#e1e1e6',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
     fontSize: 16,
+    backgroundColor: '#f7f7f8',
+    ...Platform.select({
+      web: {
+        outline: 'none',
+        transition: 'all 0.2s ease',
+        ':focus': {
+          borderColor: '#10a37f',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 0 0 2px rgba(16, 163, 127, 0.1)',
+        },
+      },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   modalButtons: {
     flexDirection: 'row',
@@ -1225,10 +1245,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f7f7f8',
+    borderWidth: 1.5,
+    borderColor: '#e1e1e6',
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+        ':hover': {
+          backgroundColor: '#e8e8ed',
+          borderColor: '#d1d1d6',
+        },
+      },
+    }),
   },
   confirmButton: {
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#10a37f',
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+        ':hover': {
+          backgroundColor: '#0e8f6f',
+        },
+      },
+    }),
   },
   modalButtonText: {
     fontSize: 16,

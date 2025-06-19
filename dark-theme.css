@@ -1,0 +1,299 @@
+/* Global Dark Mode Theme with Custom Properties */
+
+:root[data-theme="dark"] {
+  /* Design Tokens */
+  --color-bg: #0D0D0D;
+  --color-surface: #1B1B1B;
+  --color-surface-alt: #222222;
+  --color-panel: #2A2A2A;
+  --divider: #2E2E2E;
+  --hover: #242424;
+  --color-primary: #3A8DFF;
+  --color-secondary: #00E676;
+  --text-primary: #E0E0E0;
+  --text-secondary: #A0A0A0;
+  --caret: #E0E0E0;
+  --selection-bg: #3A8DFF;
+  --selection-color: #0D0D0D;
+}
+
+/* Base Styles */
+body {
+  background-color: var(--color-bg);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Calendar View Styles */
+.calendar .day-column {
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--divider);
+  transition: background-color 0.3s ease;
+}
+
+.calendar .day-column:nth-child(odd) {
+  background-color: var(--color-surface-alt);
+}
+
+.calendar .day-header {
+  background-color: transparent;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--divider);
+  font-weight: 600;
+  padding: 12px 16px;
+}
+
+.calendar .hour-line {
+  border-top: 1px solid var(--divider);
+  opacity: 0.6;
+}
+
+.calendar .event-card {
+  background-color: var(--color-panel);
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  color: var(--text-primary);
+  box-shadow: none;
+  transition: all 0.3s ease;
+}
+
+.calendar .event-card:hover {
+  background-color: var(--hover);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+/* Layout Components */
+.header {
+  background-color: var(--color-panel);
+  border-bottom: 1px solid var(--divider);
+  color: var(--text-primary);
+}
+
+.input-bar {
+  background-color: var(--color-panel);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.input-bar:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(58, 141, 255, 0.1);
+}
+
+.card {
+  background-color: var(--color-panel);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  background-color: var(--hover);
+  border-color: var(--color-primary);
+}
+
+.panel {
+  background-color: var(--color-panel);
+  border: 1px solid var(--divider);
+  color: var(--text-primary);
+}
+
+/* Button Styles */
+.button.primary {
+  background-color: var(--color-primary);
+  color: var(--selection-color);
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.button.primary:hover {
+  background-color: #2A7AE6;
+  border-color: #2A7AE6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(58, 141, 255, 0.3);
+}
+
+.button.secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-bg);
+  border: 1px solid var(--color-secondary);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.button.secondary:hover {
+  background-color: #00C768;
+  border-color: #00C768;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 230, 118, 0.3);
+}
+
+/* Form Elements */
+input,
+textarea,
+[contenteditable] {
+  background-color: var(--color-panel);
+  border: 1px solid var(--divider);
+  color: var(--text-primary);
+  caret-color: var(--caret);
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+input:focus,
+textarea:focus,
+[contenteditable]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(58, 141, 255, 0.1);
+  background-color: var(--hover);
+}
+
+/* Hover States */
+.hover-effect:hover,
+.interactive:hover {
+  background-color: var(--hover);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* Link hovers */
+a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--divider);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Firefox scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--divider) transparent;
+}
+
+/* Text Selection */
+::selection {
+  background-color: var(--selection-bg);
+  color: var(--selection-color);
+}
+
+::-moz-selection {
+  background-color: var(--selection-bg);
+  color: var(--selection-color);
+}
+
+/* Additional Calendar-Specific Styles */
+.calendar .time-slot {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.calendar .current-time-indicator {
+  background-color: var(--color-primary);
+  height: 2px;
+  position: relative;
+  box-shadow: 0 0 8px rgba(58, 141, 255, 0.5);
+}
+
+.calendar .current-time-indicator::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: -5px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--color-primary);
+  border-radius: 50%;
+  border: 2px solid var(--color-bg);
+}
+
+/* Task/Event Categories */
+.event-card.work {
+  border-left: 4px solid var(--color-primary);
+}
+
+.event-card.personal {
+  border-left: 4px solid var(--color-secondary);
+}
+
+.event-card.study {
+  border-left: 4px solid #FF6B6B;
+}
+
+.event-card.general {
+  border-left: 4px solid var(--text-secondary);
+}
+
+/* Focus indicators for accessibility */
+button:focus,
+.button:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Disabled states */
+.button:disabled,
+input:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--color-surface);
+  color: var(--text-secondary);
+}
+
+/* Modal/Dialog backgrounds */
+.modal-backdrop {
+  background-color: rgba(13, 13, 13, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.modal,
+.dialog {
+  background-color: var(--color-panel);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Transitions for theme switching */
+* {
+  transition: background-color 0.3s ease, 
+              border-color 0.3s ease, 
+              color 0.3s ease,
+              box-shadow 0.3s ease;
+} 

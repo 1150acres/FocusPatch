@@ -181,7 +181,17 @@ export function useData() {
   }, []);
 
   const addTask = useCallback(async (newTask) => {
-    const task = { id: Date.now().toString(), ...newTask };
+    // Import time snapping function dynamically to avoid circular dependencies
+    const { snapTimeStringToQuarter } = await import('../utils/timeUtils');
+    
+    // Snap the time to 15-minute intervals
+    const snappedTime = newTask.time ? snapTimeStringToQuarter(newTask.time) : newTask.time;
+    
+    const task = { 
+      id: Date.now().toString(), 
+      ...newTask,
+      time: snappedTime
+    };
     let updated = [];
     await setTasks(prev => {
       updated = [...prev, task];
